@@ -42,7 +42,7 @@ def compute_best_posterior_mean(model, bounds, objective):
     return argmax_mean, max_mean
 
 
-def acquisition_function_factory(type, model, objective, best_value, idx, number_of_outputs):
+def acquisition_function_factory(type, model, objective, best_value, idx, number_of_outputs, penalty_value):
     if type is AcquisitionFunctionType.BOTORCH_EXPECTED_IMPROVEMENT:
         return ExpectedImprovement(model=model, best_f=best_value)
     elif type is AcquisitionFunctionType.BOTORCH_MC_EXPECTED_IMPROVEMENT:
@@ -71,7 +71,8 @@ def acquisition_function_factory(type, model, objective, best_value, idx, number
         x_eval_mask[0, idx] = 1
         return DecoupledConstrainedKnowledgeGradient(model, sampler=sampler_list, num_fantasies=5,
                                                      objective=objective,
-                                                     X_evaluation_mask=x_eval_mask)
+                                                     X_evaluation_mask=x_eval_mask,
+                                                     penalty_value=penalty_value)
 
 
 class DecoupledConstrainedKnowledgeGradient(DecoupledAcquisitionFunction, MCAcquisitionFunction):
@@ -83,26 +84,29 @@ class DecoupledConstrainedKnowledgeGradient(DecoupledAcquisitionFunction, MCAcqu
                  objective: Optional[MCAcquisitionObjective] = None,
                  posterior_transform: Optional[PosteriorTransform] = None,
                  X_pending: Optional[Tensor] = None,
-                 X_evaluation_mask: Optional[Tensor] = None) -> None:
+                 X_evaluation_mask: Optional[Tensor] = None,
+                 penalty_value: Optional[Tensor] = None) -> None:
         super().__init__(model=model, sampler=sampler, objective=objective,
                          posterior_transform=posterior_transform, X_pending=X_pending,
                          X_evaluation_mask=X_evaluation_mask)
         self.current_value = current_value
         self.num_fantasies = num_fantasies
+        self.penalty_value = penalty_value
 
     def forward(self, X: Tensor) -> Tensor:
         fantasy_model = self.model.fantasize(X=X, sampler=self.sampler,
                                              evaluation_mask=self.construct_evaluation_mask(X))
         bounds = torch.tensor([[0.0] * X.shape[-1], [1.0] * X.shape[-1]], dtype=torch.double)
-        batch_shape = ConstrainedPosteriorMean(fantasy_model).model.batch_shape
+        constrained_posterior_mean_model = ConstrainedPosteriorMean(fantasy_model, penalty_value=self.penalty_value)
+        batch_shape = constrained_posterior_mean_model.model.batch_shape
         init_conditions = draw_sobol_samples(bounds=bounds, n=8, q=1, batch_shape=batch_shape)
         with torch.enable_grad():
             bestx, _ = gen_candidates_torch(initial_conditions=init_conditions,
-                                            acquisition_function=ConstrainedPosteriorMean(fantasy_model),
+                                            acquisition_function=constrained_posterior_mean_model,
                                             lower_bounds=bounds[0],
                                             upper_bounds=bounds[1],
                                             options={"maxiter": 20})
-            bestvals = ConstrainedPosteriorMean(fantasy_model)(bestx)
+            bestvals = constrained_posterior_mean_model(bestx)
         bestval_sample = bestvals.max(dim=0)[0]
         kgvals = bestval_sample.mean(dim=0)
 
