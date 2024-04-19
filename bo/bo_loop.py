@@ -26,7 +26,8 @@ class OptimizationLoop:
                  seed: int,
                  budget: int,
                  performance_type: str,
-                 bounds: Tensor):
+                 bounds: Tensor,
+                 penalty_value: Optional[Tensor] = torch.tensor([0.0])):
         torch.random.manual_seed(seed)
         self.objective = objective
         self.bounds = bounds
@@ -38,6 +39,7 @@ class OptimizationLoop:
         self.performance_type = performance_type
         self.acquisition_function_type = ei_type
         self.number_of_outputs = self.model_wrapper.getNumberOfOutputs()
+        self.penalty_value = penalty_value
 
     def save_parameters(self):
 
@@ -88,7 +90,8 @@ class OptimizationLoop:
                                                                     objective=self.objective,
                                                                     best_value=best_observed_value,
                                                                     idx=task_idx,
-                                                                    number_of_outputs=self.number_of_outputs)
+                                                                    number_of_outputs=self.number_of_outputs,
+                                                                    penalty_value=self.penalty_value)
 
                 new_x, kgvalue = self.compute_next_sample(acquisition_function=acquisition_function)  # Coupled
                 kg_values_list[task_idx] = kgvalue

@@ -45,5 +45,6 @@ if __name__ == "__main__":
                             performance_type="model",
                             model=model,
                             seed=0,
-                            budget=5)
+                            budget=5,
+                            penalty_value=torch.tensor([0.0]))
     loop.run()
