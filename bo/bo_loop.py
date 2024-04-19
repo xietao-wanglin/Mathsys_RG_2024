@@ -149,7 +149,7 @@ class OptimizationLoop:
 
     def compute_best_posterior_mean(self, model, bounds):
         argmax_mean, max_mean = optimize_acqf(
-            acq_function=ConstrainedPosteriorMean(model, maximize=True),
+            acq_function=ConstrainedPosteriorMean(model, maximize=True, penalty_value=self.penalty_value),
             bounds=bounds,
             q=1,
             num_restarts=20,

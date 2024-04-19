@@ -27,7 +27,6 @@ if __name__ == "__main__":
     # Note: the launcher assumes that all inequalities are less than and the limit of the constraint is zero.
     # Transform accordingly in the problem.
     # TODO: save the information bayesian optimization information.
-    # TODO: change the penalty M in the acquisition function.
     # TODO: select and code up the test functions to use for the poster/report.
     #
     black_box_function = ConstrainedBranin(noise_std=1e-6, negate=True)
@@ -46,5 +45,6 @@ if __name__ == "__main__":
                             model=model,
                             seed=0,
                             budget=5,
-                            penalty_value=torch.tensor([0.0]))
+                            penalty_value=torch.tensor([
+                                                           10.0]))  # penalty value -M should be at least as low as the lowest value of the objective function
     loop.run()
