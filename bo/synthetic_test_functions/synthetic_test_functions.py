@@ -58,14 +58,14 @@ class ConstrainedFunc3(ConstrainedBaseTestProblem):
         X_tf = unnormalize(X, self._bounds)
         t1 = ( X_tf[..., 0]-1) ** 2
         t2 = (X_tf[..., 1]-0.5) ** 2
-        return -t1 ** 2 -t2**2
+        return -t1**2 -t2**2
     
     def evaluate_slack_true(self, X: Tensor) -> Tensor:
         pass
         
     def evaluate_slack1_true(self, X: Tensor) -> Tensor:
         X_tf = unnormalize(X, self._bounds)
-        return (X_tf[..., 0] - 3)**2 + (X_tf[..., 1] + 2)**2 - 12
+        return (X_tf[..., 0] - 3)**2 + (X_tf[..., 1] + 2)**2*torch.exp(-(X_tf[..., 1])**7) - 12
     
     def evaluate_slack2_true(self, X: Tensor) -> Tensor:
         X_tf = unnormalize(X, self._bounds)
@@ -77,9 +77,9 @@ class ConstrainedFunc3(ConstrainedBaseTestProblem):
 
     def evaluate_black_box(self, X: Tensor) -> Tensor:
         y = self.evaluate_true(X).reshape(-1, 1)
-        c1 = self.evaluate_slack1_true(X)
-        c2 = self.evaluate_slack2_true(X)
-        c3 = self.evaluate_slack3_true(X)
+        c1 = self.evaluate_slack1_true(X).reshape(-1, 1)
+        c2 = self.evaluate_slack2_true(X).reshape(-1, 1)
+        c3 = self.evaluate_slack3_true(X).reshape(-1, 1)
         return torch.concat([y, c1, c2, c3], dim=1)
 
     def evaluate_task(self, X: Tensor, task_index: int) -> Tensor:

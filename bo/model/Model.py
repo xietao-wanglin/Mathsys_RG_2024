@@ -145,7 +145,7 @@ class ConstrainedDeoupledGPModelWrapper():
                                                train_Yvar=self.train_var_noise.expand_as(Y[c].reshape(-1, 1))))
 
             self.model = ModelListGP(*list_of_models)
-            return self.model
+        return self.model
 
     def optimize(self):
         mll = SumMarginalLogLikelihood(self.model.likelihood, self.model)

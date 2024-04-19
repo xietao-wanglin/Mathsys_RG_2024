@@ -33,7 +33,7 @@ if __name__ == "__main__":
     #black_box_function = ConstrainedBranin(noise_std=1e-6, negate=True)
     #num_constraints = 1
 
-    
+    black_box_function = ConstrainedFunc3(noise_std=1e-6, negate=True)
     num_constraints = 3
 
     model = ConstrainedDeoupledGPModelWrapper(num_constraints=num_constraints)
