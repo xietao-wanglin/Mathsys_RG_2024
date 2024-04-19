@@ -71,6 +71,8 @@ def acquisition_function_factory(type, model, objective, best_value, idx, number
         x_eval_mask[0, idx] = 1
         return DecoupledConstrainedKnowledgeGradient(model, sampler=sampler_list, num_fantasies=5,
                                                      objective=objective,
+                                                     number_of_raw_points=32,
+                                                     # play with this if it gets too slow...get it down a little...
                                                      X_evaluation_mask=x_eval_mask,
                                                      penalty_value=penalty_value)
 
@@ -84,6 +86,7 @@ class DecoupledConstrainedKnowledgeGradient(DecoupledAcquisitionFunction, MCAcqu
                  objective: Optional[MCAcquisitionObjective] = None,
                  posterior_transform: Optional[PosteriorTransform] = None,
                  X_pending: Optional[Tensor] = None,
+                 number_of_raw_points: Optional[int] = 64,
                  X_evaluation_mask: Optional[Tensor] = None,
                  penalty_value: Optional[Tensor] = None) -> None:
         super().__init__(model=model, sampler=sampler, objective=objective,
@@ -92,6 +95,7 @@ class DecoupledConstrainedKnowledgeGradient(DecoupledAcquisitionFunction, MCAcqu
         self.current_value = current_value
         self.num_fantasies = num_fantasies
         self.penalty_value = penalty_value
+        self.number_of_raw_points = number_of_raw_points
 
     def forward(self, X: Tensor) -> Tensor:
         fantasy_model = self.model.fantasize(X=X, sampler=self.sampler,
@@ -99,13 +103,13 @@ class DecoupledConstrainedKnowledgeGradient(DecoupledAcquisitionFunction, MCAcqu
         bounds = torch.tensor([[0.0] * X.shape[-1], [1.0] * X.shape[-1]], dtype=torch.double)
         constrained_posterior_mean_model = ConstrainedPosteriorMean(fantasy_model, penalty_value=self.penalty_value)
         batch_shape = constrained_posterior_mean_model.model.batch_shape
-        init_conditions = draw_sobol_samples(bounds=bounds, n=8, q=1, batch_shape=batch_shape)
+        init_conditions = draw_sobol_samples(bounds=bounds, n=self.number_of_raw_points, q=1, batch_shape=batch_shape)
         with torch.enable_grad():
             bestx, _ = gen_candidates_torch(initial_conditions=init_conditions,
                                             acquisition_function=constrained_posterior_mean_model,
                                             lower_bounds=bounds[0],
                                             upper_bounds=bounds[1],
-                                            options={"maxiter": 20})
+                                            options={"maxiter": 30})
             bestvals = constrained_posterior_mean_model(bestx)
         bestval_sample = bestvals.max(dim=0)[0]
         kgvals = bestval_sample.mean(dim=0)
