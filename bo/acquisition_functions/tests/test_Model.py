@@ -11,6 +11,7 @@ from gpytorch.mlls import SumMarginalLogLikelihood
 from bo.acquisition_functions.acquisition_functions import DecoupledConstrainedKnowledgeGradient
 from bo.constrained_functions.synthetic_problems import ConstrainedBranin
 from bo.model.Model import ConstrainedGPModelWrapper, ConstrainedPosteriorMean, ConstrainedDeoupledGPModelWrapper
+from bo.synthetic_test_functions.synthetic_test_functions import MysteryFunction
 
 
 device = torch.device("cpu")
@@ -58,6 +59,26 @@ class TestMathsysExpectedImprovement(BotorchTestCase):
         plt.scatter(unfeas_x[:, 0], unfeas_x[:, 1], color="grey")
         plt.show()
 
+class TestMysteryFunction(BotorchTestCase):
+
+    def test_shape(self):
+
+        problem = MysteryFunction()
+        
+        d = 2
+        n_points = 40000
+        
+        train_X = torch.rand(n_points, d, device=self.device, dtype=dtype)
+        
+        test_X = torch.rand(n_points, d, device=self.device, dtype=dtype)
+        
+        evalu = problem.evaluate_black_box(test_X) # Objective
+        plt.scatter(test_X[:, 0], test_X[:, 1], c=evalu[:, 0], alpha=0.2)
+        evalu = problem.evaluate_black_box(train_X) # Constraint
+        unfeas_x = train_X[evalu[:, 1] >= 0]
+        plt.scatter(unfeas_x[:, 0], unfeas_x[:, 1], color="grey")
+        plt.colorbar()
+        plt.show()
 
 class TestPosteriorConstrainedMean(BotorchTestCase):
 
