@@ -11,7 +11,7 @@ from gpytorch.mlls import SumMarginalLogLikelihood
 from bo.acquisition_functions.acquisition_functions import DecoupledConstrainedKnowledgeGradient
 from bo.synthetic_test_functions.synthetic_test_functions import ConstrainedBraninNew
 from bo.model.Model import ConstrainedGPModelWrapper, ConstrainedPosteriorMean, ConstrainedDeoupledGPModelWrapper
-from bo.synthetic_test_functions.synthetic_test_functions import MysteryFunction
+from bo.synthetic_test_functions.synthetic_test_functions import ConstrainedFunc3, MysteryFunction
 
 device = torch.device("cpu")
 dtype = torch.double
@@ -183,6 +183,37 @@ class TestConstrainedGPDecoupledModelWrapper(TestCase):
         model = ConstrainedDeoupledGPModelWrapper(num_constraints=1)
         model.fit([train_Xf, train_Xc], [train_f_vals, train_c_vals])
         model.optimize()
+        
+class TestFunction3(BotorchTestCase):
+
+    def test_shape(self):
+
+        problem = ConstrainedFunc3()
+        
+        d = 2
+        n_points = 4000
+        
+        train_X = torch.rand(n_points, d, device=self.device, dtype=dtype)
+        
+        test_X = torch.rand(n_points, d, device=self.device, dtype=dtype)
+        
+        evalu = problem.evaluate_black_box(test_X) # f c1 c2 c3
+        plt.scatter(test_X[:, 0], test_X[:, 1], c=evalu[:, 0], alpha=0.2)
+
+        evalu = problem.evaluate_black_box(train_X)
+        unfeas1_x = train_X[evalu[:, 1] > 0]
+        plt.scatter(unfeas1_x[:, 0], unfeas1_x[:, 1], color="grey")
+
+        unfeas2_x = train_X[evalu[:, 2] >= 0]
+        plt.scatter(unfeas2_x[:, 0], unfeas2_x[:, 1], color="blue", alpha=0.2)
+
+        # unfeas3_x = train_X[evalu[:, 3] >= 0]
+        # plt.scatter(unfeas3_x[:, 0], unfeas3_x[:, 1], color="grey")
+
+        plt.plot(0.2017, 0.8332)
+
+        plt.colorbar()
+        plt.show()
     
 class TestBraninFunctionNew(BotorchTestCase):
 
