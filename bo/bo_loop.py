@@ -164,7 +164,7 @@ class OptimizationLoop:
             acq_function=acquisition_function,
             bounds=self.bounds,
             q=1,
-            num_restarts=15,
+            num_restarts=15, # can make smaller if too slow, not too small though
             raw_samples=128,  # used for intialization heuristic
             options={"maxiter": 60},
         )
