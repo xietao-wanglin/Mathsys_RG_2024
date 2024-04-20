@@ -55,14 +55,15 @@ class OptimizationLoop:
             kg_values_list = torch.zeros(self.number_of_outputs, dtype=dtype)
             new_x_list = []
             for task_idx in range(self.number_of_outputs):
-                print("task_idx",task_idx)
+                print("task_idx", task_idx)
                 acquisition_function = acquisition_function_factory(model=model,
                                                                     type=self.acquisition_function_type,
                                                                     objective=self.objective,
                                                                     best_value=best_observed_value,
                                                                     idx=task_idx,
                                                                     number_of_outputs=self.number_of_outputs,
-                                                                    penalty_value=self.penalty_value)
+                                                                    penalty_value=self.penalty_value,
+                                                                    iteration=iteration)
 
                 new_x, kgvalue = self.compute_next_sample(acquisition_function=acquisition_function)  # Coupled
                 kg_values_list[task_idx] = kgvalue
@@ -163,9 +164,9 @@ class OptimizationLoop:
             acq_function=acquisition_function,
             bounds=self.bounds,
             q=1,
-            num_restarts=5,
-            raw_samples=64,  # used for intialization heuristic
-            options={"maxiter": 20},
+            num_restarts=15,
+            raw_samples=128,  # used for intialization heuristic
+            options={"maxiter": 60},
         )
         # observe new values
         new_x = candidates.detach()
