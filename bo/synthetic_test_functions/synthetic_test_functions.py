@@ -103,7 +103,7 @@ class ConstrainedFunc3(ConstrainedBaseTestProblem):
         
     def evaluate_slack1_true(self, X: Tensor) -> Tensor:
         X_tf = unnormalize(X, self._bounds)
-        return (X_tf[..., 0] - 3)**2 + (X_tf[..., 1] + 2)**2*torch.exp(-(X_tf[..., 1])**7) - 12
+        return ((X_tf[..., 0] - 3)**2 + (X_tf[..., 1] + 2)**2)*torch.exp(-(X_tf[..., 1])**7) - 12
     
     def evaluate_slack2_true(self, X: Tensor) -> Tensor:
         X_tf = unnormalize(X, self._bounds)
