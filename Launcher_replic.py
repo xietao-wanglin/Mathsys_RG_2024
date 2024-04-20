@@ -40,6 +40,7 @@ if __name__ == "__main__":
         black_box_function = ConstrainedBranin(noise_std=1e-6, negate=True)
         num_constraints = 1
         seed = s
+        print(s)
         model = ConstrainedDeoupledGPModelWrapper(num_constraints=num_constraints)
         # define a feasibility-weighted objective for optimization
         constrained_obj = ConstrainedMCObjective(
