@@ -9,7 +9,7 @@ from botorch.utils.testing import BotorchTestCase
 from gpytorch.mlls import SumMarginalLogLikelihood
 
 from bo.acquisition_functions.acquisition_functions import DecoupledConstrainedKnowledgeGradient
-from bo.constrained_functions.synthetic_problems import ConstrainedBranin
+from bo.synthetic_test_functions.synthetic_test_functions import ConstrainedBraninNew
 from bo.model.Model import ConstrainedGPModelWrapper, ConstrainedPosteriorMean, ConstrainedDeoupledGPModelWrapper
 
 
@@ -134,6 +134,54 @@ class TestConstrainedGPDecoupledModelWrapper(TestCase):
         model = ConstrainedDeoupledGPModelWrapper(num_constraints = 1)
         model.fit([train_Xf, train_Xc], [train_f_vals, train_c_vals])
         model.optimize()
-        
+    
+class TestBraninFunctionNew(BotorchTestCase):
 
- 
+ def test_shape(self):
+     problem = ConstrainedBraninNew()
+     d = 2
+     n_points = 4000
+     train_X = torch.rand(n_points, d, device=self.device, dtype=dtype)
+     test_X = torch.rand(n_points, d, device=self.device, dtype=dtype)
+     evalu = problem.evaluate_black_box(test_X)
+     plt.scatter(test_X[:,0], test_X[:,1], c=evalu[:,0], alpha=0.2)
+     evalu = problem.evaluate_black_box(train_X)
+     unfeas_x = train_X[evalu[:,1]>=0]
+     plt.scatter(unfeas_x[:,0], unfeas_x[:,1], color = "grey")
+     plt.colorbar()
+     plt.show()
+
+
+class TestBraninFunctionNew1(BotorchTestCase):
+
+ def test_shape(self):
+     problem = ConstrainedBraninNew()
+     d = 2
+     n_points = 4000
+     train_X = torch.rand(n_points, d, device=self.device, dtype=dtype)
+     test_X = torch.rand(n_points, d, device=self.device, dtype=dtype)
+     evalu = problem.evaluate_black_box(test_X)
+     plt.scatter(test_X[:,0], test_X[:,1], c=evalu[:,0], alpha=0.2)
+     evalu = problem.evaluate_black_box(train_X)
+     unfeas_x = train_X[evalu[:,1]>=0]
+     plt.scatter(unfeas_x[:,0], unfeas_x[:,1], color = "grey")
+     plt.colorbar()
+     plt.show()
+     bounds = [(-5.0, 10.0), (0.0, 15.0)]
+     x1 = np.linspace(bounds[0][0], bounds[0][1], 100)
+     x2 = np.linspace(bounds[1][0], bounds[1][1], 100)
+     X1, X2 = np.meshgrid(x1, x2)
+     X = np.hstack((X1.reshape(100*100,1),X2.reshape(100*100,1)))
+     Y = problem.evaluate_black_box(X)
+
+     plt.figure()    
+     plt.contourf(X1, X2, Y.reshape((100,100)),100)
+     if (len(self.min)>1):    
+         plt.plot(np.array(self.min)[:,0], np.array(self.min)[:,1], 'w.', markersize=20, label=u'Observations')
+     else:
+        plt.plot(self.min[0][0], self.min[0][1], 'w.', markersize=20, label=u'Observations')
+     plt.colorbar()
+     plt.xlabel('X1')
+     plt.ylabel('X2')
+     plt.title(self.name)
+     plt.show()
