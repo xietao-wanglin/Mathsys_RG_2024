@@ -1,6 +1,3 @@
-import json
-import os
-import time
 from typing import Optional
 
 import torch
@@ -11,6 +8,7 @@ from torch import Tensor
 
 from bo.acquisition_functions.acquisition_functions import acquisition_function_factory, AcquisitionFunctionType
 from bo.model.Model import ConstrainedPosteriorMean, ConstrainedDeoupledGPModelWrapper
+from bo.result_utils.result_container import Results
 
 # constants
 device = torch.device("cpu")
@@ -19,15 +17,14 @@ dtype = torch.float64
 
 class OptimizationLoop:
 
-    def __init__(self, black_box_func: BaseTestProblem,
-                 model: ConstrainedDeoupledGPModelWrapper,
-                 objective: Optional[MCAcquisitionObjective],
-                 ei_type: AcquisitionFunctionType,
-                 seed: int,
-                 budget: int,
-                 performance_type: str,
-                 bounds: Tensor):
+    def __init__(self, black_box_func: BaseTestProblem, model: ConstrainedDeoupledGPModelWrapper,
+                 objective: Optional[MCAcquisitionObjective], ei_type: AcquisitionFunctionType, seed: int, budget: int,
+                 performance_type: str, bounds: Tensor, results: Results,
+                 penalty_value: Optional[Tensor] = torch.tensor([0.0]), number_initial_designs: Optional[int] = 6
+                 ):
+
         torch.random.manual_seed(seed)
+        self.results = results
         self.objective = objective
         self.bounds = bounds
         self.black_box_func = black_box_func
@@ -38,36 +35,12 @@ class OptimizationLoop:
         self.performance_type = performance_type
         self.acquisition_function_type = ei_type
         self.number_of_outputs = self.model_wrapper.getNumberOfOutputs()
-
-    def save_parameters(self):
-
-        self.unix_time = round(time.time())
-        print(f'Current time: {self.unix_time}')
-
-        # Create folder for saving data.
-        folder_path = os.getcwd() + '/data/'
-        self.folder = os.path.join(folder_path, 'sim-' + str(self.unix_time))
-        os.mkdir(self.folder)
-
-        parameters = {
-            'objective': self.objective._get_name(),
-            'black_box': self.black_box_func._get_name(),
-            'acqf': self.acquisition_function_type.name,
-            'seed': self.seed,
-            'budget': self.budget,
-            'p_type': self.performance_type,
-        }
-        with open(f'{self.folder}/parameters.json', 'w') as fp:
-            json.dump(parameters, fp)
+        self.penalty_value = penalty_value
+        self.number_initial_designs = number_initial_designs
 
     def run(self):
-
-        self.save_parameters()
-
         best_observed_all_sampled = []
-
-        train_x, train_y = self.generate_initial_data(n=6)
-
+        train_x, train_y = self.generate_initial_data(n=self.number_initial_designs)
         model = self.update_model(train_x, train_y)
 
         for iteration in range(self.budget):
@@ -81,14 +54,16 @@ class OptimizationLoop:
 
             kg_values_list = torch.zeros(self.number_of_outputs, dtype=dtype)
             new_x_list = []
-
             for task_idx in range(self.number_of_outputs):
+                print("task_idx", task_idx)
                 acquisition_function = acquisition_function_factory(model=model,
                                                                     type=self.acquisition_function_type,
                                                                     objective=self.objective,
                                                                     best_value=best_observed_value,
                                                                     idx=task_idx,
-                                                                    number_of_outputs=self.number_of_outputs)
+                                                                    number_of_outputs=self.number_of_outputs,
+                                                                    penalty_value=self.penalty_value,
+                                                                    iteration=iteration)
 
                 new_x, kgvalue = self.compute_next_sample(acquisition_function=acquisition_function)  # Coupled
                 kg_values_list[task_idx] = kgvalue
@@ -107,14 +82,44 @@ class OptimizationLoop:
                     best_observed_location) + " current sample decision x: " + str(new_x),
                 end="",
             )
-            with open(f'{self.folder}/results.dat', 'a') as results_file:
-                # TODO: Only works for dimension 2 atm.
-                results_file.write(
-                    f'{iteration:>2}, {best_observed_value:>4.5f}, {best_observed_location[0][0]}, {best_observed_location[0][1]}, {new_x[0][0]}, {new_x[0][1]}\n')
+            self.save_parameters(train_x=train_x,
+                                 train_y=train_y,
+                                 best_predicted_location=best_observed_location,
+                                 best_predicted_location_value=self.evaluate_location_true_quality(
+                                     best_observed_location),
+                                 acqf_recommended_location=new_x,
+                                 acqf_recommended_location_true_value=self.evaluate_location_true_quality(new_x),
+                                 acqf_recommended_output_index=index)
 
-            # for i in range(model.num_constraints + 1):
-            #    with open(f'{self.folder}/gp_{i}.dat', 'a') as model_file:
-            #        model_file.write()
+    def save_parameters(self, train_x, train_y, best_predicted_location,
+                        best_predicted_location_value, acqf_recommended_output_index, acqf_recommended_location,
+                        acqf_recommended_location_true_value):
+
+        self.results.random_seed(self.seed)
+        self.results.save_budget(self.budget)
+        self.results.save_input_data(train_x)
+        self.results.save_output_data(train_y)
+        self.results.save_number_initial_points(self.number_initial_designs)
+        self.results.save_performance_type(self.performance_type)
+        self.results.save_best_predicted_location(best_predicted_location)
+        self.results.save_best_predicted_location_true_value(best_predicted_location_value)
+        self.results.save_acqf_recommended_output_index(acqf_recommended_output_index)
+        self.results.save_acqf_recommended_location(acqf_recommended_location)
+        self.results.save_acqf_recommended_location_true_value(acqf_recommended_location_true_value)
+        self.results.generate_pkl_file()
+
+    def evaluate_location_true_quality(self, X):
+        f_value = self.evaluate_black_box_func(X, 0)
+        if self.is_design_feasible(X):
+            return f_value
+        return -self.penalty_value
+
+    def is_design_feasible(self, X):
+        for idx in range(1, self.model_wrapper.getNumberOfOutputs()):
+            c_val = self.evaluate_black_box_func(X, idx)
+            if c_val > 0:
+                return False
+        return True
 
     def evaluate_black_box_func(self, X, task_idx):
         return self.black_box_func.evaluate_task(X, task_idx)
@@ -146,7 +151,7 @@ class OptimizationLoop:
 
     def compute_best_posterior_mean(self, model, bounds):
         argmax_mean, max_mean = optimize_acqf(
-            acq_function=ConstrainedPosteriorMean(model, maximize=True),
+            acq_function=ConstrainedPosteriorMean(model, maximize=True, penalty_value=self.penalty_value),
             bounds=bounds,
             q=1,
             num_restarts=20,
@@ -159,9 +164,9 @@ class OptimizationLoop:
             acq_function=acquisition_function,
             bounds=self.bounds,
             q=1,
-            num_restarts=5,
-            raw_samples=20,  # used for intialization heuristic
-            options={"maxiter": 200},
+            num_restarts=15,
+            raw_samples=128,  # used for intialization heuristic
+            options={"maxiter": 60},
         )
         # observe new values
         new_x = candidates.detach()
