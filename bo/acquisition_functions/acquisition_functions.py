@@ -10,7 +10,7 @@ from botorch.acquisition.analytic import _ei_helper, PosteriorMean
 from botorch.acquisition.knowledge_gradient import _split_fantasy_points
 from botorch.acquisition.objective import PosteriorTransform
 from botorch.models.model import Model
-from botorch.optim import optimize_acqf
+from botorch.optim import optimize_acqf, initialize_q_batch
 from botorch.sampling import MCSampler, SobolQMCNormalSampler, ListSampler
 from botorch.utils import draw_sobol_samples
 from botorch.utils.transforms import match_batch_shape, t_batch_mode_transform
@@ -42,7 +42,7 @@ def compute_best_posterior_mean(model, bounds, objective):
     return argmax_mean, max_mean
 
 
-def acquisition_function_factory(type, model, objective, best_value, idx, number_of_outputs):
+def acquisition_function_factory(type, model, objective, best_value, idx, number_of_outputs, penalty_value, iteration):
     if type is AcquisitionFunctionType.BOTORCH_EXPECTED_IMPROVEMENT:
         return ExpectedImprovement(model=model, best_f=best_value)
     elif type is AcquisitionFunctionType.BOTORCH_MC_EXPECTED_IMPROVEMENT:
@@ -71,7 +71,12 @@ def acquisition_function_factory(type, model, objective, best_value, idx, number
         x_eval_mask[0, idx] = 1
         return DecoupledConstrainedKnowledgeGradient(model, sampler=sampler_list, num_fantasies=5,
                                                      objective=objective,
-                                                     X_evaluation_mask=x_eval_mask)
+                                                     number_of_raw_points=1024,
+                                                     number_of_restarts=20,
+                                                     seed = iteration,
+                                                     # play with this if it gets too slow...get it down a little...
+                                                     X_evaluation_mask=x_eval_mask,
+                                                     penalty_value=penalty_value)
 
 
 class DecoupledConstrainedKnowledgeGradient(DecoupledAcquisitionFunction, MCAcquisitionFunction):
@@ -83,26 +88,41 @@ class DecoupledConstrainedKnowledgeGradient(DecoupledAcquisitionFunction, MCAcqu
                  objective: Optional[MCAcquisitionObjective] = None,
                  posterior_transform: Optional[PosteriorTransform] = None,
                  X_pending: Optional[Tensor] = None,
-                 X_evaluation_mask: Optional[Tensor] = None) -> None:
+                 number_of_raw_points: Optional[int] = 64,
+                 number_of_restarts: Optional[int] = 20,
+                 X_evaluation_mask: Optional[Tensor] = None,
+                 seed: Optional[int] = 0,
+                 penalty_value: Optional[Tensor] = None) -> None:
         super().__init__(model=model, sampler=sampler, objective=objective,
                          posterior_transform=posterior_transform, X_pending=X_pending,
                          X_evaluation_mask=X_evaluation_mask)
         self.current_value = current_value
         self.num_fantasies = num_fantasies
+        self.penalty_value = penalty_value
+        self.number_of_restarts = number_of_restarts
+        self.number_of_raw_points = number_of_raw_points
+        self.seed = seed
 
     def forward(self, X: Tensor) -> Tensor:
         fantasy_model = self.model.fantasize(X=X, sampler=self.sampler,
                                              evaluation_mask=self.construct_evaluation_mask(X))
         bounds = torch.tensor([[0.0] * X.shape[-1], [1.0] * X.shape[-1]], dtype=torch.double)
-        batch_shape = ConstrainedPosteriorMean(fantasy_model).model.batch_shape
-        init_conditions = draw_sobol_samples(bounds=bounds, n=8, q=1, batch_shape=batch_shape)
+        constrained_posterior_mean_model = ConstrainedPosteriorMean(fantasy_model, penalty_value=self.penalty_value)
+        batch_shape = constrained_posterior_mean_model.model.batch_shape
+        raw_points = draw_sobol_samples(bounds=bounds,
+                                        n=self.number_of_raw_points,
+                                        q=1,
+                                        batch_shape=batch_shape,
+                                        seed=self.seed)
+        restart_points = initialize_q_batch(X=raw_points, Y=constrained_posterior_mean_model(raw_points),
+                                            n=self.number_of_restarts, eta=2.0)
         with torch.enable_grad():
-            bestx, _ = gen_candidates_torch(initial_conditions=init_conditions,
-                                            acquisition_function=ConstrainedPosteriorMean(fantasy_model),
+            bestx, _ = gen_candidates_torch(initial_conditions=restart_points,
+                                            acquisition_function=constrained_posterior_mean_model,
                                             lower_bounds=bounds[0],
                                             upper_bounds=bounds[1],
-                                            options={"maxiter": 20})
-            bestvals = ConstrainedPosteriorMean(fantasy_model)(bestx)
+                                            options={"maxiter": 60})
+            bestvals = constrained_posterior_mean_model(bestx)
         bestval_sample = bestvals.max(dim=0)[0]
         kgvals = bestval_sample.mean(dim=0)
 
