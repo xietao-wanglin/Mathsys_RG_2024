@@ -6,7 +6,7 @@ from botorch.utils.transforms import unnormalize
 from torch import Tensor
 
 
-class ConstrainedBranin(ConstrainedBaseTestProblem):
+class ConstrainedBraninNew(ConstrainedBaseTestProblem):
     _bounds = [(-5.0, 10.0), (0.0, 15.0)]
 
     def __init__(self, noise_std=0.0, negate=False):
@@ -16,22 +16,20 @@ class ConstrainedBranin(ConstrainedBaseTestProblem):
 
     def evaluate_true(self, X: Tensor) -> Tensor:
         X_tf = unnormalize(X, self._bounds)
-        t1 = (
-                X_tf[..., 1]
-                - 5.1 / (4 * math.pi ** 2) * X_tf[..., 0] ** 2
-                + 5 / math.pi * X_tf[..., 0]
-                - 6
-        )
-        t2 = 10 * (1 - 1 / (8 * math.pi)) * torch.cos(X_tf[..., 0])
-        return t1 ** 2 + t2 + 10
+        return -(X_tf[...,0]-10)**2 - (X_tf[...,1]-15)**2
 
     def evaluate_slack_true(self, X: Tensor) -> Tensor:
         X_tf = unnormalize(X, self._bounds)
-        return 50 - (X_tf[..., 0:1] - 2.5).pow(2) - (X_tf[..., 1:2] - 7.5).pow(2)
+        t1 = ((
+            X_tf[..., 1]
+            - 5.1 / (4 * math.pi ** 2) * (X_tf[..., 0]**2)
+            + (5 / math.pi) * X_tf[..., 0])- 6)**2
+        t2 = 10 * (1 - 1 / (8 * math.pi)) * torch.cos(X_tf[..., 0])
+        return t1 + t2 + 5
 
     def evaluate_black_box(self, X: Tensor) -> Tensor:
         y = self.evaluate_true(X).reshape(-1, 1)
-        c1 = self.evaluate_slack_true(X)
+        c1 = self.evaluate_slack_true(X).reshape(-1,1) #
         return torch.concat([y, c1], dim=1)
 
     def evaluate_task(self, X: Tensor, task_index: int) -> Tensor:
