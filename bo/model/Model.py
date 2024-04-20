@@ -52,11 +52,13 @@ class ConstrainedPosteriorMean(AnalyticAcquisitionFunction):
             model: Model,
             objective: Optional[MCAcquisitionObjective] = None,
             maximize: bool = True,
+            penalty_value: Optional[Tensor] = torch.tensor([0.0]),
     ) -> None:
         super(AnalyticAcquisitionFunction, self).__init__(model=model)
         self.objective = objective
         self.posterior_transform = None
         self.maximize = maximize
+        self.penalty_value = penalty_value
 
     @t_batch_mode_transform(expected_q=1)
     def forward(self, X: Tensor) -> Tensor:
@@ -80,7 +82,8 @@ class ConstrainedPosteriorMean(AnalyticAcquisitionFunction):
         limits = torch.tensor([0] * (means.shape[-1] - 1))
         z = (limits - mean_constraints) / sigma_constraints
         probability_feasibility = torch.distributions.Normal(0, 1).cdf(z).prod(dim=-1)
-        constrained_posterior_mean = mean_obj * probability_feasibility
+        constrained_posterior_mean = mean_obj * probability_feasibility - self.penalty_value * (
+                1 - probability_feasibility)
         return constrained_posterior_mean.squeeze(dim=-1)
 
 
@@ -101,7 +104,6 @@ class ConstrainedGPModelWrapper():
         assert Y.shape[1] == self.num_constraints + 1, "missmatch constraint number"
         assert Y.shape[0] == X.shape[0], "missmatch number of evaluations"
 
-
         self.model_f = SingleTaskGP(train_X=X,
                                     train_Y=Y[:, 0].reshape(-1, 1),
                                     train_Yvar=self.train_var_noise.expand_as(Y[:, 0].reshape(-1, 1)),
@@ -121,17 +123,18 @@ class ConstrainedGPModelWrapper():
         fit_gpytorch_mll(mll)
         return self.model
 
+
 class ConstrainedDeoupledGPModelWrapper():
     def __init__(self, num_constraints):
         self.model_f = None
         self.model = None
         self.num_constraints = num_constraints
-        self.train_var_noise = torch.tensor(1e-4, device=device, dtype=dtype)
+        self.train_var_noise = torch.tensor(1e-6, device=device, dtype=dtype)
         self.num_outputs = num_constraints + 1
 
     def getNumberOfOutputs(self):
         return self.num_outputs
-    
+
     def fit(self, X, Y):
         self.model_f = SingleTaskGP(train_X=X[0],
                                     train_Y=Y[0].reshape(-1, 1),
@@ -145,7 +148,7 @@ class ConstrainedDeoupledGPModelWrapper():
                                                train_Yvar=self.train_var_noise.expand_as(Y[c].reshape(-1, 1))))
 
             self.model = ModelListGP(*list_of_models)
-            return self.model
+        return self.model
 
     def optimize(self):
         mll = SumMarginalLogLikelihood(self.model.likelihood, self.model)

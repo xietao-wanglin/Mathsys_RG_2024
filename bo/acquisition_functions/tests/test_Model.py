@@ -13,7 +13,6 @@ from bo.constrained_functions.synthetic_problems import ConstrainedBranin
 from bo.model.Model import ConstrainedGPModelWrapper, ConstrainedPosteriorMean, ConstrainedDeoupledGPModelWrapper
 from bo.synthetic_test_functions.synthetic_test_functions import MysteryFunction
 
-
 device = torch.device("cpu")
 dtype = torch.double
 
@@ -42,7 +41,7 @@ class TestMathsysExpectedImprovement(BotorchTestCase):
         plt.scatter(unfeas_x[:, 0], unfeas_x[:, 1], color="grey")
         plt.show()
 
-        model = ConstrainedGPModelWrapper(num_constraints=1)
+        model = ConstrainedDeoupledGPModelWrapper(num_constraints=1)
         model.fit(train_X, eval)
         optimized_model = model.optimize()
 
@@ -109,6 +108,35 @@ class TestPosteriorConstrainedMean(BotorchTestCase):
         plt.scatter(test_X[:, 0], test_X[:, 1], c=penalised_posterior_values.detach())
         plt.show()
 
+class TestPosteriorConstrainedDecoupledMean(BotorchTestCase):
+
+    def test_forward(self):
+        problem = ConstrainedBranin()
+
+        def black_box_evaluation(X):
+            y = problem(X).reshape(-1, 1)
+            c1 = problem.evaluate_slack_true(X)
+            return torch.concat([y -1000, c1], dim=1)
+
+        d = 2
+        n_points = 40
+        torch.manual_seed(0)
+        dtype = torch.double
+        train_X = torch.rand(n_points, d, device=self.device, dtype=dtype)
+        train_X = torch.concat([train_X, torch.tensor([[0.0, 0.0]])])
+        test_X = torch.rand(1000, d, device=self.device, dtype=dtype)
+        eval = black_box_evaluation(train_X)
+        print("max", torch.max(eval[:, 0]), "min", torch.min(eval[:, 0]))
+        model = ConstrainedDeoupledGPModelWrapper(num_constraints=1)
+        model.fit([train_X, train_X], [eval[:, 0], eval[:, 1]])
+        optimized_model = model.optimize()
+
+        constrained_posterior = ConstrainedPosteriorMean(model=optimized_model, maximize=True, penalty_value=00)
+        penalised_posterior_values = constrained_posterior(test_X[:, None, :])
+
+        plt.scatter(test_X[:, 0], test_X[:, 1], c=penalised_posterior_values.detach())
+        plt.scatter(train_X[:, 0], train_X[:, 1], color= "red")
+        plt.show()
 
 class TestConstrainedGPModelWrapper(TestCase):
     def test_fit(self):
@@ -138,7 +166,7 @@ class TestConstrainedGPModelWrapper(TestCase):
 
         kg = DecoupledConstrainedKnowledgeGradient(model=model, num_fantasies=5,
                                                    current_value=torch.Tensor([0.0]))
-        
+
 
 class TestConstrainedGPDecoupledModelWrapper(TestCase):
     def test_fit(self):
@@ -152,9 +180,6 @@ class TestConstrainedGPDecoupledModelWrapper(TestCase):
         train_f_vals = problem.evaluate_true(train_Xf)
         train_c_vals = problem.evaluate_slack_true(train_Xc)
 
-        model = ConstrainedDeoupledGPModelWrapper(num_constraints = 1)
+        model = ConstrainedDeoupledGPModelWrapper(num_constraints=1)
         model.fit([train_Xf, train_Xc], [train_f_vals, train_c_vals])
         model.optimize()
-        
-
- 
