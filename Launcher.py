@@ -7,7 +7,7 @@ from bo.acquisition_functions.acquisition_functions import AcquisitionFunctionTy
 from bo.bo_loop import OptimizationLoop
 from bo.model.Model import ConstrainedDeoupledGPModelWrapper
 from bo.result_utils.result_container import Results
-from bo.synthetic_test_functions.synthetic_test_functions import ConstrainedBranin
+from bo.constrained_functions.synthetic_problems import ConstrainedBranin
 
 device = torch.device("cpu")
 dtype = torch.double

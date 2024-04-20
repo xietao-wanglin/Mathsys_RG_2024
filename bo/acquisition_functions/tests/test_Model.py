@@ -2,6 +2,7 @@ from unittest import TestCase
 
 import matplotlib.pyplot as plt
 import torch
+import numpy as np
 from botorch import fit_gpytorch_mll
 from botorch.models import SingleTaskGP, ModelListGP
 from botorch.models.transforms import Standardize
@@ -9,9 +10,9 @@ from botorch.utils.testing import BotorchTestCase
 from gpytorch.mlls import SumMarginalLogLikelihood
 
 from bo.acquisition_functions.acquisition_functions import DecoupledConstrainedKnowledgeGradient
-from bo.synthetic_test_functions.synthetic_test_functions import ConstrainedBraninNew
+from bo.synthetic_test_functions.synthetic_test_functions import ConstrainedBraninNew, ConstrainedFunc3, MysteryFunction
 from bo.model.Model import ConstrainedGPModelWrapper, ConstrainedPosteriorMean, ConstrainedDeoupledGPModelWrapper
-from bo.synthetic_test_functions.synthetic_test_functions import ConstrainedFunc3, MysteryFunction
+from bo.constrained_functions.synthetic_problems import ConstrainedBranin
 
 device = torch.device("cpu")
 dtype = torch.double
