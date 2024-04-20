@@ -71,7 +71,7 @@ def acquisition_function_factory(type, model, objective, best_value, idx, number
         x_eval_mask[0, idx] = 1
         return DecoupledConstrainedKnowledgeGradient(model, sampler=sampler_list, num_fantasies=5,
                                                      objective=objective,
-                                                     number_of_raw_points=1024, # can make smaller if speed
+                                                     number_of_raw_points=144, # can make smaller if speed
                                                      number_of_restarts=20, # this too, not too small though
                                                      seed = iteration,
                                                      # play with this if it gets too slow...get it down a little...
