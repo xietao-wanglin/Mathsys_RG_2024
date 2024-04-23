@@ -16,32 +16,33 @@ class ConstrainedBraninNew(ConstrainedBaseTestProblem):
 
     def evaluate_true(self, X: Tensor) -> Tensor:
         X_tf = unnormalize(X, self._bounds)
-        return -(X_tf[...,0]-10)**2 - (X_tf[...,1]-15)**2
+        return -(X_tf[..., 0] - 10) ** 2 - (X_tf[..., 1] - 15) ** 2
 
     def evaluate_slack_true(self, X: Tensor) -> Tensor:
         X_tf = unnormalize(X, self._bounds)
         t1 = ((
-            X_tf[..., 1]
-            - 5.1 / (4 * math.pi ** 2) * (X_tf[..., 0]**2)
-            + (5 / math.pi) * X_tf[..., 0])- 6)**2
+                      X_tf[..., 1]
+                      - 5.1 / (4 * math.pi ** 2) * (X_tf[..., 0] ** 2)
+                      + (5 / math.pi) * X_tf[..., 0]) - 6) ** 2
         t2 = 10 * (1 - 1 / (8 * math.pi)) * torch.cos(X_tf[..., 0])
         return t1 + t2 + 5
 
     def evaluate_black_box(self, X: Tensor) -> Tensor:
         y = self.evaluate_true(X).reshape(-1, 1)
-        c1 = self.evaluate_slack_true(X).reshape(-1,1) #
+        c1 = self.evaluate_slack_true(X).reshape(-1, 1)  #
         return torch.concat([y, c1], dim=1)
 
     def evaluate_task(self, X: Tensor, task_index: int) -> Tensor:
         assert task_index <= 1, "Maximum of 2 Outputs allowed (task_index <= 1)"
         assert task_index >= 0, "No negative values for task_index allowed"
         if task_index == 0:
-            return self.evaluate_true(X)
+            return self.forward(X)
         elif task_index == 1:
             return self.evaluate_slack_true(X)
         else:
             print("Error evaluate_task")
             raise
+
 
 class MysteryFunction(ConstrainedBaseTestProblem):
     _bounds = [(0.0, 5.0), (0.0, 5.0)]
@@ -56,15 +57,15 @@ class MysteryFunction(ConstrainedBaseTestProblem):
         X_1 = X_tf[..., 0]
         X_2 = X_tf[..., 1]
 
-        t1 = 2.0 + 0.01*((X_2 - X_1.pow(2)).pow(2))
+        t1 = 2.0 + 0.01 * ((X_2 - X_1.pow(2)).pow(2))
         t2 = (1 - X_1).pow(2)
-        t3 = 2*((2-X_2).pow(2))
-        t4 = 7*torch.sin(0.5*X_1)*torch.sin(0.7*X_1*X_2)
+        t3 = 2 * ((2 - X_2).pow(2))
+        t4 = 7 * torch.sin(0.5 * X_1) * torch.sin(0.7 * X_1 * X_2)
         return t1 + t2 + t3 + t4
 
     def evaluate_slack_true(self, X: Tensor) -> Tensor:
         X_tf = unnormalize(X, self._bounds)
-        return -torch.sin(X_tf[..., 0] - X_tf[..., 1] - math.pi/8)
+        return -torch.sin(X_tf[..., 0] - X_tf[..., 1] - math.pi / 8)
 
     def evaluate_black_box(self, X: Tensor) -> Tensor:
         y = self.evaluate_true(X).reshape(-1, 1)
@@ -76,7 +77,7 @@ class MysteryFunction(ConstrainedBaseTestProblem):
         assert task_index <= 1, "Maximum of 2 Outputs allowed (task_index <= 1)"
         assert task_index >= 0, "No negative values for task_index allowed"
         if task_index == 0:
-            return self.evaluate_true(X)
+            return self.forward(X)
         elif task_index == 1:
             return self.evaluate_slack_true(X)
         else:
@@ -94,24 +95,24 @@ class ConstrainedFunc3(ConstrainedBaseTestProblem):
 
     def evaluate_true(self, X: Tensor) -> Tensor:
         X_tf = unnormalize(X, self._bounds)
-        t1 = ( X_tf[..., 0]-1) ** 2
-        t2 = (X_tf[..., 1]-0.5) ** 2
-        return -t1**2 -t2**2
-    
+        t1 = (X_tf[..., 0] - 1) ** 2
+        t2 = (X_tf[..., 1] - 0.5) ** 2
+        return -t1 - t2
+
     def evaluate_slack_true(self, X: Tensor) -> Tensor:
         pass
-        
+
     def evaluate_slack1_true(self, X: Tensor) -> Tensor:
         X_tf = unnormalize(X, self._bounds)
-        return ((X_tf[..., 0] - 3)**2 + (X_tf[..., 1] + 2)**2)*torch.exp(-(X_tf[..., 1])**7) - 12
-    
+        return ((X_tf[..., 0] - 3) ** 2 + (X_tf[..., 1] + 2) ** 2) * torch.exp(-(X_tf[..., 1]) ** 7) - 12
+
     def evaluate_slack2_true(self, X: Tensor) -> Tensor:
         X_tf = unnormalize(X, self._bounds)
-        return 10*X_tf[..., 0]  + X_tf[..., 1] -7
-    
+        return 10 * X_tf[..., 0] + X_tf[..., 1] - 7
+
     def evaluate_slack3_true(self, X: Tensor) -> Tensor:
         X_tf = unnormalize(X, self._bounds)
-        return (X_tf[..., 0] - 0.5)**2 + (X_tf[..., 1] -0.5)**2 - 0.2
+        return (X_tf[..., 0] - 0.5) ** 2 + (X_tf[..., 1] - 0.5) ** 2 - 0.2
 
     def evaluate_black_box(self, X: Tensor) -> Tensor:
         y = self.evaluate_true(X).reshape(-1, 1)
@@ -124,7 +125,7 @@ class ConstrainedFunc3(ConstrainedBaseTestProblem):
         assert task_index <= 3, "Maximum of 4 Outputs allowed (task_index <= 3)"
         assert task_index >= 0, "No negative values for task_index allowed"
         if task_index == 0:
-            return self.evaluate_true(X)
+            return self.forward(X)
         elif task_index == 1:
             return self.evaluate_slack1_true(X)
         elif task_index == 2:

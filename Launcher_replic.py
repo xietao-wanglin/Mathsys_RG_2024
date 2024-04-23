@@ -7,7 +7,7 @@ from bo.acquisition_functions.acquisition_functions import AcquisitionFunctionTy
 from bo.bo_loop import OptimizationLoop
 from bo.model.Model import ConstrainedDeoupledGPModelWrapper
 from bo.result_utils.result_container import Results
-from bo.constrained_functions.synthetic_problems import ConstrainedBranin
+from bo.synthetic_test_functions.synthetic_test_functions import MysteryFunction
 
 device = torch.device("cpu")
 dtype = torch.double
@@ -25,7 +25,7 @@ def constraint_callable_wrapper(constraint_idx):
 
 
 if __name__ == "__main__":
-    
+
     # Note: the launcher assumes that all inequalities are less than and the limit of the constraint is zero.
     # Transform accordingly in the problem.
     # TODO: Launcher should be adapted to run different problems and random seeds....
@@ -37,7 +37,7 @@ if __name__ == "__main__":
     # SUGGESTION!!!!! don't run EVERYTHING without checking...do a dummy run and make sure its optimizing....
     seed_list = [1, 2]
     for s in seed_list:
-        black_box_function = ConstrainedBranin(noise_std=1e-6, negate=True)
+        black_box_function = MysteryFunction(noise_std=1e-6, negate=True)
         num_constraints = 1
         seed = s
         print(s)
@@ -58,6 +58,7 @@ if __name__ == "__main__":
                                 budget=5,
                                 number_initial_designs=6,
                                 results=results,
-                                penalty_value=torch.tensor([0.0]))  # penalty value -M should be at least as low as the lowest value of the objective function
+                                penalty_value=torch.tensor([
+                                                               0.0]))  # penalty value -M should be at least as low as the lowest value of the objective function
         # play with the penalty value if the objective function has negative values....
         loop.run()
