@@ -25,6 +25,7 @@ def constraint_callable_wrapper(constraint_idx):
 
 
 if __name__ == "__main__":
+    
     # Note: the launcher assumes that all inequalities are less than and the limit of the constraint is zero.
     # Transform accordingly in the problem.
     # TODO: Launcher should be adapted to run different problems and random seeds....
@@ -34,26 +35,29 @@ if __name__ == "__main__":
     # NOTE: number of initial designs could be set as in the paper.
     # Note: you may do 15-20 replications with different random seeds for each problem...
     # SUGGESTION!!!!! don't run EVERYTHING without checking...do a dummy run and make sure its optimizing....
-    black_box_function = ConstrainedBranin(noise_std=1e-6, negate=True)
-    num_constraints = 1
-    seed = 0
-    model = ConstrainedDeoupledGPModelWrapper(num_constraints=num_constraints)
-    # define a feasibility-weighted objective for optimization
-    constrained_obj = ConstrainedMCObjective(
-        objective=obj_callable,
-        constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
-    )
-    results = Results(filename="constrained_branin_" + str(seed) + ".pkl")
-    loop = OptimizationLoop(black_box_func=black_box_function,
-                            objective=constrained_obj,
-                            ei_type=AcquisitionFunctionType.DECOUPLED_CONSTRAINED_KNOWLEDGE_GRADIENT,
-                            bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
-                            performance_type="model",
-                            model=model,
-                            seed=seed,
-                            budget=5,
-                            number_initial_designs=6,
-                            results=results,
-                            penalty_value=torch.tensor([0.0]))  # penalty value -M should be at least as low as the lowest value of the objective function
-    # play with the penalty value if the objective function has negative values....
-    loop.run()
+    seed_list = [1, 2]
+    for s in seed_list:
+        black_box_function = ConstrainedBranin(noise_std=1e-6, negate=True)
+        num_constraints = 1
+        seed = s
+        print(s)
+        model = ConstrainedDeoupledGPModelWrapper(num_constraints=num_constraints)
+        # define a feasibility-weighted objective for optimization
+        constrained_obj = ConstrainedMCObjective(
+            objective=obj_callable,
+            constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
+        )
+        results = Results(filename="constrained_branin_" + str(seed) + ".pkl")
+        loop = OptimizationLoop(black_box_func=black_box_function,
+                                objective=constrained_obj,
+                                ei_type=AcquisitionFunctionType.DECOUPLED_CONSTRAINED_KNOWLEDGE_GRADIENT,
+                                bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
+                                performance_type="model",
+                                model=model,
+                                seed=seed,
+                                budget=5,
+                                number_initial_designs=6,
+                                results=results,
+                                penalty_value=torch.tensor([0.0]))  # penalty value -M should be at least as low as the lowest value of the objective function
+        # play with the penalty value if the objective function has negative values....
+        loop.run()
