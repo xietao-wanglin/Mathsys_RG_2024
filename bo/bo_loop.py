@@ -1,4 +1,6 @@
 from typing import Optional
+import warnings
+import time
 
 import torch
 from botorch.acquisition import MCAcquisitionObjective
@@ -13,6 +15,7 @@ from bo.result_utils.result_container import Results
 # constants
 device = torch.device("cpu")
 dtype = torch.float64
+warnings.filterwarnings("ignore") # Comment out if there are issues
 
 
 class OptimizationLoop:
@@ -43,6 +46,7 @@ class OptimizationLoop:
         train_x, train_y = self.generate_initial_data(n=self.number_initial_designs)
         model = self.update_model(train_x, train_y)
 
+        start_time = time.time()
         for iteration in range(self.budget):
             best_observed_location, best_observed_value = self.best_observed(
                 best_value_computation_type=self.performance_type,
@@ -55,7 +59,7 @@ class OptimizationLoop:
             kg_values_list = torch.zeros(self.number_of_outputs, dtype=dtype)
             new_x_list = []
             for task_idx in range(self.number_of_outputs):
-                print("task_idx", task_idx)
+                # print("Running Task:", task_idx)
                 acquisition_function = acquisition_function_factory(model=model,
                                                                     type=self.acquisition_function_type,
                                                                     objective=self.objective,
@@ -77,9 +81,9 @@ class OptimizationLoop:
             model = self.update_model(X=train_x, y=train_y)
 
             print(
-                f"\nBatch {iteration:>2}: best_value (EI) = "
+                f"\nBatch {iteration:>2} finished: best value (EI) = "
                 f"({best_observed_value:>4.5f}), best location " + str(
-                    best_observed_location) + " current sample decision x: " + str(new_x),
+                    best_observed_location) + " current sample decision x: " + str(new_x_list[index]) + f" on task {index}\n",
                 end="",
             )
             self.save_parameters(train_x=train_x,
@@ -87,9 +91,14 @@ class OptimizationLoop:
                                  best_predicted_location=best_observed_location,
                                  best_predicted_location_value=self.evaluate_location_true_quality(
                                      best_observed_location),
-                                 acqf_recommended_location=new_x,
-                                 acqf_recommended_location_true_value=self.evaluate_location_true_quality(new_x),
+                                 acqf_recommended_location=new_x_list[index],
+                                 acqf_recommended_location_true_value=self.evaluate_location_true_quality(new_x_list[index]),
                                  acqf_recommended_output_index=index)
+            middle_time = time.time() - start_time
+            print(f'took {middle_time} seconds')
+        
+        end = time.time() - start_time
+        print(f'Total time: {end} seconds')
 
     def save_parameters(self, train_x, train_y, best_predicted_location,
                         best_predicted_location_value, acqf_recommended_output_index, acqf_recommended_location,

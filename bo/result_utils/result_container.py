@@ -64,7 +64,7 @@ class Results():
         # Serialize the results and save them to a pickle file
         with open(self.filepath, 'wb') as f:
             pickle.dump(results_dict, f)
-        print(f"Results saved to: {self.filepath}")
+        print(f"Results saved to: {self.filepath} \n")
 
     def _build_results_dict(self):
         return {"path": self.filepath,
