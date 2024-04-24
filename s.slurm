@@ -7,4 +7,4 @@
 
 module load GCCcore/11.3.0 Python/3.10.4
 
-srun python ./Mathsys_RG_2024/Launcher_replic.py
+srun python ./Launcher_replic.py
