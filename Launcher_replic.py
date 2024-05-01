@@ -47,7 +47,7 @@ if __name__ == "__main__":
             objective=obj_callable,
             constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
         )
-        results = Results(filename="resultcheck" + str(seed) + ".pkl")
+        results = Results(filename="resultcheck2" + str(seed) + ".pkl")
         loop = EI_Decoupled_OptimizationLoop(black_box_func=black_box_function,
                                 objective=constrained_obj,
                                 ei_type=AcquisitionFunctionType.BOTORCH_CONSTRAINED_EXPECTED_IMPROVEMENT,

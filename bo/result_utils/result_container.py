@@ -19,8 +19,11 @@ class Results():
         self.failing_constraint = []
 
 
-    def save_failing_constraint(self, i):
-        self.failing_constraint.append(i+1)
+    def save_failing_constraint(self, k):
+        if k == -1:
+            self.failing_constraint.append("None")
+        else:
+            self.failing_constraint.append(k)
 
     def save_input_data(self, x):
         self.input_data = x

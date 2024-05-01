@@ -244,6 +244,7 @@ class EI_Decoupled_OptimizationLoop:
             evaluation_order = sorted(range(len(probability_infeasibility)), key=probability_infeasibility.__getitem__)[::-1]
             i=0
             j=0
+            k=-1
             while i < size-1 :
                 if probability_infeasibility[i]>0.1:
                     # print(evaluation_order[i]+1)
@@ -254,6 +255,7 @@ class EI_Decoupled_OptimizationLoop:
                     if new_y < 0:
                         i=i+1
                     else:
+                        k = i+1
                         i = size
                 elif probability_infeasibility[i] < 0.1 and j == 0:
                     # print(0)
@@ -263,6 +265,7 @@ class EI_Decoupled_OptimizationLoop:
                     model = self.update_model(X=train_x, y=train_y)
                     j = 1
                     if new_y < best_observed_value:
+                        k = 0
                         i = size
                 else:
                     # print(evaluation_order[i]+1)
@@ -273,6 +276,7 @@ class EI_Decoupled_OptimizationLoop:
                     if new_y < 0:
                         i=i+1
                     else:
+                        k = i+1
                         i = size
             if i == size-1 and j ==0:
                 # print(0)
@@ -294,7 +298,7 @@ class EI_Decoupled_OptimizationLoop:
                                      best_observed_location),
                                  acqf_recommended_location=new_x,
                                  acqf_recommended_location_true_value=self.evaluate_location_true_quality(new_x),
-                                 i = i+1) #last one gives index of failing constraint
+                                 failing_constraint = (k)) #last one gives index of failing constraint
             middle_time = time.time() - start_time
             print(f'took {middle_time} seconds')
         
@@ -303,7 +307,7 @@ class EI_Decoupled_OptimizationLoop:
 
     def save_parameters(self, train_x, train_y, best_predicted_location,
                         best_predicted_location_value,  acqf_recommended_location,
-                        acqf_recommended_location_true_value, i):
+                        acqf_recommended_location_true_value, failing_constraint):
 
         self.results.random_seed(self.seed)
         self.results.save_budget(self.budget)
@@ -315,7 +319,7 @@ class EI_Decoupled_OptimizationLoop:
         self.results.save_best_predicted_location_true_value(best_predicted_location_value)
         self.results.save_acqf_recommended_location(acqf_recommended_location)
         self.results.save_acqf_recommended_location_true_value(acqf_recommended_location_true_value)
-        self.results.save_failing_constraint(i)
+        self.results.save_failing_constraint(failing_constraint)
 
         self.results.generate_pkl_file()
 
