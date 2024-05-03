@@ -4,10 +4,10 @@ import torch
 from botorch.acquisition import ConstrainedMCObjective
 
 from bo.acquisition_functions.acquisition_functions import AcquisitionFunctionType
-from bo.bo_loop import OptimizationLoop
+from bo.bo_loop import OptimizationLoop, EI_Decoupled_OptimizationLoop
 from bo.model.Model import ConstrainedDeoupledGPModelWrapper
 from bo.result_utils.result_container import Results
-from bo.synthetic_test_functions.synthetic_test_functions import MysteryFunction
+from bo.synthetic_test_functions.synthetic_test_functions import MysteryFunction, ConstrainedBraninNew, ConstrainedFunc3
 
 device = torch.device("cpu")
 dtype = torch.double
@@ -35,9 +35,9 @@ if __name__ == "__main__":
     # NOTE: number of initial designs could be set as in the paper.
     # Note: you may do 15-20 replications with different random seeds for each problem...
     # SUGGESTION!!!!! don't run EVERYTHING without checking...do a dummy run and make sure its optimizing....
-    seed_list = [1, 2]
+    seed_list = [1]
     for s in seed_list:
-        black_box_function = MysteryFunction(noise_std=1e-6, negate=True)
+        black_box_function = ConstrainedBraninNew(noise_std=1e-6, negate=True)
         num_constraints = 1
         seed = s
         print(s)
@@ -47,18 +47,22 @@ if __name__ == "__main__":
             objective=obj_callable,
             constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
         )
-        results = Results(filename="constrained_branin_" + str(seed) + ".pkl")
-        loop = OptimizationLoop(black_box_func=black_box_function,
+        results = Results(filename="resultcheck2" + str(seed) + ".pkl")
+        loop = EI_Decoupled_OptimizationLoop(black_box_func=black_box_function,
                                 objective=constrained_obj,
-                                ei_type=AcquisitionFunctionType.DECOUPLED_CONSTRAINED_KNOWLEDGE_GRADIENT,
+                                ei_type=AcquisitionFunctionType.BOTORCH_CONSTRAINED_EXPECTED_IMPROVEMENT,
                                 bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
                                 performance_type="model",
                                 model=model,
                                 seed=seed,
-                                budget=5,
+                                budget=10,
                                 number_initial_designs=6,
                                 results=results,
                                 penalty_value=torch.tensor([
-                                                               0.0]))  # penalty value -M should be at least as low as the lowest value of the objective function
+                                                               100.0]),
+                                costs = torch.tensor([1,1]))
+                                
+          # penalty value -M should be at least as low as the lowest value of,
+        # the objective function
         # play with the penalty value if the objective function has negative values....
         loop.run()

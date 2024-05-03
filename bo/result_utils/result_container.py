@@ -16,6 +16,14 @@ class Results():
         self.acqf_recommended_location = []
         self.acqf_recommended_location_value = []
         self.acqf_recommended_output_index = []
+        self.failing_constraint = []
+
+
+    def save_failing_constraint(self, k):
+        if k == -1:
+            self.failing_constraint.append("None")
+        else:
+            self.failing_constraint.append(k)
 
     def save_input_data(self, x):
         self.input_data = x
@@ -79,4 +87,8 @@ class Results():
                 "best_predicted_location_value": self.best_predicted_location_true_value,
                 "acqf_recommended_location": self.acqf_recommended_location,
                 "acqf_recommended_location_value": self.acqf_recommended_location_value,
-                "acqf_recommended_output_index:": self.acqf_recommended_output_index}
+                "acqf_recommended_output_index:": self.acqf_recommended_output_index,
+                "failing_index:": self.failing_constraint}
+    
+    
+    
