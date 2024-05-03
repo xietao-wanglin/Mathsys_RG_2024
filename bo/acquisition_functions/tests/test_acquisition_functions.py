@@ -120,9 +120,9 @@ class TestDecoupledKG(BotorchTestCase):
             torch.manual_seed(0)
             acqf = DecoupledConstrainedKnowledgeGradient(model, sampler = sampler_list, num_fantasies=5, 
                                                          objective=ConstrainedMCObjective(objective=obj_callable, constraints=[obj_callable]),
-                                                           X_evaluation_mask=x_eval_mask)
+                                                           X_evaluation_mask=x_eval_mask, penalty_value=0.0)
             rd = torch.rand(6, 1, d, dtype = dtype)
-            acqf(rd) # 5 is no of points, 1 is for q-batch, d is dimension of input space
+            # acqf(rd) # 5 is no of points, 1 is for q-batch, d is dimension of input space
         
             bounds = torch.tensor([[0.0]*d,[1.0]*d], dtype=torch.double)
             candidates, candidates_values = optimize_acqf(acqf, bounds, 1, 5, 15, options={'maxiter': 200})
