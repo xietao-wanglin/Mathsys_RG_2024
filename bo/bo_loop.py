@@ -24,9 +24,11 @@ class OptimizationLoop:
                  objective: Optional[MCAcquisitionObjective], ei_type: AcquisitionFunctionType, seed: int, budget: int,
                  performance_type: str, bounds: Tensor, results: Results,
                  penalty_value: Optional[Tensor] = torch.tensor([0.0]), number_initial_designs: Optional[int] = 6,
-                 costs: Optional[Tensor] = torch.ones((2))
+                 costs: Optional[Tensor] = torch.tensor([-23])
                  ):
 
+        if costs == torch.tensor([-23]):
+            costs = torch.ones(model.getNumberOfOutputs())
         torch.random.manual_seed(seed)
         self.results = results
         self.objective = objective

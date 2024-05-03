@@ -7,7 +7,7 @@ from bo.acquisition_functions.acquisition_functions import AcquisitionFunctionTy
 from bo.bo_loop import OptimizationLoop, EI_Decoupled_OptimizationLoop
 from bo.model.Model import ConstrainedDeoupledGPModelWrapper
 from bo.result_utils.result_container import Results
-from bo.synthetic_test_functions.synthetic_test_functions import MysteryFunction, ConstrainedBraninNew, ConstrainedFunc3
+from bo.synthetic_test_functions.synthetic_test_functions import *
 
 device = torch.device("cpu")
 dtype = torch.double
@@ -28,13 +28,6 @@ if __name__ == "__main__":
 
     # Note: the launcher assumes that all inequalities are less than and the limit of the constraint is zero.
     # Transform accordingly in the problem.
-    # TODO: Launcher should be adapted to run different problems and random seeds....
-    # NOTE: If the objective values are negative please change the penalty_value to something sensible.
-    # NOTE: if code is too slow you may make it faster by chaging the number_of_raw_points in the acquisition function and reduce this number (you'll sacrifice accuracy).
-    # NOTE: budget you could set it as in the ckg paper...
-    # NOTE: number of initial designs could be set as in the paper.
-    # Note: you may do 15-20 replications with different random seeds for each problem...
-    # SUGGESTION!!!!! don't run EVERYTHING without checking...do a dummy run and make sure its optimizing....
     seed_list = [1]
     for s in seed_list:
         black_box_function = ConstrainedBraninNew(noise_std=1e-6, negate=True)
@@ -42,7 +35,6 @@ if __name__ == "__main__":
         seed = s
         print(s)
         model = ConstrainedDeoupledGPModelWrapper(num_constraints=num_constraints)
-        # define a feasibility-weighted objective for optimization
         constrained_obj = ConstrainedMCObjective(
             objective=obj_callable,
             constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
@@ -58,11 +50,6 @@ if __name__ == "__main__":
                                 budget=10,
                                 number_initial_designs=6,
                                 results=results,
-                                penalty_value=torch.tensor([
-                                                               100.0]),
+                                penalty_value=torch.tensor([100.0]),
                                 costs = torch.tensor([1,1]))
-                                
-          # penalty value -M should be at least as low as the lowest value of,
-        # the objective function
-        # play with the penalty value if the objective function has negative values....
         loop.run()
