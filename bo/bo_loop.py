@@ -74,7 +74,7 @@ class OptimizationLoop:
                 new_x_list.append(new_x)
 
             index = torch.argmax(kg_values_list)
-            new_y = self.evaluate_black_box_func(new_x_list[index], index)
+            new_y = self.evaluate_black_box_func(new_x_list[index], index) # TODO: Test this function
 
             train_x[index] = torch.cat([train_x[index], new_x_list[index]])
             train_y[index] = torch.cat([train_y[index], new_y])
