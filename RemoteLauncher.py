@@ -5,7 +5,7 @@ import torch
 from botorch.acquisition import ConstrainedMCObjective
 
 from bo.acquisition_functions.acquisition_functions import AcquisitionFunctionType
-from bo.bo_loop import OptimizationLoop
+from bo.bo_loop import OptimizationLoop, EI_Decoupled_OptimizationLoop, EI_OptimizationLoop
 from bo.model.Model import ConstrainedDeoupledGPModelWrapper
 from bo.result_utils.result_container import Results
 from bo.constrained_functions.synthetic_problems import ConstrainedBranin
