@@ -244,6 +244,7 @@ class EI_Decoupled_OptimizationLoop:
             for i in range(1, size):
                 probability_infeasibility = probability_infeasibility + [1 - torch.distributions.Normal(0, 1).cdf(z)[0][i].detach().item()]
             evaluation_order = sorted(range(len(probability_infeasibility)), key=probability_infeasibility.__getitem__)[::-1]
+            evaluated_idx = []
             i=0
             j=0
             k=-1
@@ -254,6 +255,7 @@ class EI_Decoupled_OptimizationLoop:
                     train_x[evaluation_order[i]+1] = torch.cat([train_x[evaluation_order[i]+1], new_x])
                     train_y[evaluation_order[i]+1] = torch.cat([train_y[evaluation_order[i]+1], new_y])
                     model = self.update_model(X=train_x, y=train_y)
+                    evaluated_idx.append(evaluation_order[i]+1)
                     if new_y < 0:
                         i=i+1
                     else:
@@ -265,6 +267,7 @@ class EI_Decoupled_OptimizationLoop:
                     train_x[0] = torch.cat([train_x[0], new_x])
                     train_y[0] = torch.cat([train_y[0], new_y])
                     model = self.update_model(X=train_x, y=train_y)
+                    evaluated_idx.append(0)
                     j = 1
                     if new_y < best_observed_value:
                         k = 0
@@ -275,6 +278,7 @@ class EI_Decoupled_OptimizationLoop:
                     train_x[evaluation_order[i]+1] = torch.cat([train_x[evaluation_order[i]+1], new_x])
                     train_y[evaluation_order[i]+1] = torch.cat([train_y[evaluation_order[i]+1], new_y])
                     model = self.update_model(X=train_x, y=train_y)
+                    evaluated_idx.append(evaluation_order[i]+1)
                     if new_y < 0:
                         i=i+1
                     else:
@@ -286,13 +290,15 @@ class EI_Decoupled_OptimizationLoop:
                 train_x[0] = torch.cat([train_x[0], new_x])
                 train_y[0] = torch.cat([train_y[0], new_y])
                 model = self.update_model(X=train_x, y=train_y)
+                evaluated_idx.append(0)
 
          
             print(
                 f"\nBatch {iteration:>2} finished: best value (EI) = "
                 f"({best_observed_value:>4.5f}), best location " + str(best_observed_location) + " current sample decision x: " + str(new_x) + f", end="
                 )
-                        
+            
+            print(f'Evaluated functions: {evaluated_idx}')
             self.save_parameters(train_x=train_x,
                                  train_y=train_y,
                                  best_predicted_location=best_observed_location,
@@ -300,7 +306,8 @@ class EI_Decoupled_OptimizationLoop:
                                      best_observed_location),
                                  acqf_recommended_location=new_x,
                                  acqf_recommended_location_true_value=self.evaluate_location_true_quality(new_x),
-                                 failing_constraint = (k)) #last one gives index of failing constraint
+                                 failing_constraint = (k),
+                                 func_evals=evaluated_idx) #last one gives index of failing constraint
             middle_time = time.time() - start_time
             print(f'took {middle_time} seconds')
         
@@ -309,7 +316,7 @@ class EI_Decoupled_OptimizationLoop:
 
     def save_parameters(self, train_x, train_y, best_predicted_location,
                         best_predicted_location_value,  acqf_recommended_location,
-                        acqf_recommended_location_true_value, failing_constraint):
+                        acqf_recommended_location_true_value, failing_constraint, func_evals):
 
         self.results.random_seed(self.seed)
         self.results.save_budget(self.budget)
@@ -322,6 +329,7 @@ class EI_Decoupled_OptimizationLoop:
         self.results.save_acqf_recommended_location(acqf_recommended_location)
         self.results.save_acqf_recommended_location_true_value(acqf_recommended_location_true_value)
         self.results.save_failing_constraint(failing_constraint)
+        self.results.save_evaluated_functions(func_evals)
 
         self.results.generate_pkl_file()
 
@@ -439,7 +447,7 @@ class EI_OptimizationLoop:
                                                                 iteration=iteration)
             new_x, _ = self.compute_next_sample(acquisition_function=acquisition_function)
             for i in range(self.model_wrapper.getNumberOfOutputs()):
-                new_y = self.evaluate_black_box_func(new_x,0)
+                new_y = self.evaluate_black_box_func(new_x, i)
                 train_x[i] = torch.cat([train_x[i], new_x])
                 train_y[i] = torch.cat([train_y[i], new_y])
                 model = self.update_model(X=train_x, y=train_y)
