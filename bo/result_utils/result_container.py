@@ -17,6 +17,7 @@ class Results():
         self.acqf_recommended_location_value = []
         self.acqf_recommended_output_index = []
         self.failing_constraint = []
+        self.evals = []
 
 
     def save_failing_constraint(self, k):
@@ -58,6 +59,9 @@ class Results():
     def save_budget(self, budget):
         self.budget = budget
 
+    def save_evaluated_functions(self, evals):
+        self.evals.append(evals)
+
     def generate_pkl_file(self):
         # Create a directory called 'results' if it doesn't exist
         results_dir = 'results'
@@ -88,7 +92,8 @@ class Results():
                 "acqf_recommended_location": self.acqf_recommended_location,
                 "acqf_recommended_location_value": self.acqf_recommended_location_value,
                 "acqf_recommended_output_index:": self.acqf_recommended_output_index,
-                "failing_index:": self.failing_constraint}
+                "failing_index:": self.failing_constraint,
+                "evaluated_functions": self.evals}
     
     
     
