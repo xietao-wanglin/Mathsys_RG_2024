@@ -24,10 +24,12 @@ class OptimizationLoop:
                  objective: Optional[MCAcquisitionObjective], ei_type: AcquisitionFunctionType, seed: int, budget: int,
                  performance_type: str, bounds: Tensor, results: Results,
                  penalty_value: Optional[Tensor] = torch.tensor([0.0]), number_initial_designs: Optional[int] = 6,
-                 costs: Optional[Tensor] = torch.tensor([-23])
+                 costs: Optional[Tensor] = None
                  ):
 
-        if costs == torch.tensor([-23]):
+        print("Starting Loop: OptimizationLoop")
+        if costs is None:
+            print("Using default costs")
             costs = torch.ones(model.getNumberOfOutputs())
         torch.random.manual_seed(seed)
         self.results = results
@@ -85,9 +87,9 @@ class OptimizationLoop:
             model = self.update_model(X=train_x, y=train_y)
 
             print(
-                f"\nBatch {iteration:>2} finished: best value (EI) = "
+                f"\nBatch{iteration:>2} finished: best value (EI) = "
                 f"({best_observed_value:>4.5f}), best location " + str(
-                    best_observed_location) + " current sample decision x: " + str(new_x_list[index]) + f" on task {index}\n",
+                    best_observed_location.numpy()) + " current sample decision x: " + str(new_x_list[index].numpy()) + f" on task {index}\n",
                 end="",
             )
             self.save_parameters(train_x=train_x,
@@ -192,9 +194,14 @@ class EI_Decoupled_OptimizationLoop:
                  objective: Optional[MCAcquisitionObjective], ei_type: AcquisitionFunctionType, seed: int, budget: int,
                  performance_type: str, bounds: Tensor, results: Results,
                  penalty_value: Optional[Tensor] = torch.tensor([0.0]), number_initial_designs: Optional[int] = 6,
-                 costs: Optional[Tensor] = torch.ones((2))
+                 costs: Optional[Tensor] = None
                  ):
 
+        print("Starting Loop: EI_Decoupled_OptimizationLoop")
+        if costs is None:
+            print("Using default costs")
+            costs = torch.ones(model.getNumberOfOutputs())
+        
         torch.random.manual_seed(seed)
         self.results = results
         self.objective = objective
@@ -294,8 +301,8 @@ class EI_Decoupled_OptimizationLoop:
 
          
             print(
-                f"\nBatch {iteration:>2} finished: best value (EI) = "
-                f"({best_observed_value:>4.5f}), best location " + str(best_observed_location) + " current sample decision x: " + str(new_x) + f", end="
+                f"\nBatch{iteration:>2} finished: best value (EI) = "
+                f"({best_observed_value:>4.5f}), best location " + str(best_observed_location.numpy()) + " current sample decision x: " + str(new_x.numpy()), end="\n"
                 )
             
             print(f'Evaluated functions: {evaluated_idx}')
@@ -403,9 +410,13 @@ class EI_OptimizationLoop:
                  objective: Optional[MCAcquisitionObjective], ei_type: AcquisitionFunctionType, seed: int, budget: int,
                  performance_type: str, bounds: Tensor, results: Results,
                  penalty_value: Optional[Tensor] = torch.tensor([0.0]), number_initial_designs: Optional[int] = 6,
-                 costs: Optional[Tensor] = torch.ones((2))
+                 costs: Optional[Tensor] = None
                  ):
 
+        print("Starting Loop: EI_OptimizationLoop")
+        if costs is None:
+            print("Using default costs")
+            costs = torch.ones(model.getNumberOfOutputs())
         torch.random.manual_seed(seed)
         self.results = results
         self.objective = objective
@@ -455,8 +466,8 @@ class EI_OptimizationLoop:
                 model = self.update_model(X=train_x, y=train_y)
 
             print(
-                    f"\nBatch {iteration:>2} finished: best value (EI) = "
-                    f"({best_observed_value:>4.5f}), best location " + str(best_observed_location) + " current sample decision x: " + str(new_x) + f", end="
+                    f"\nBatch{iteration:>2} finished: best value (EI) = "
+                    f"({best_observed_value:>4.5f}), best location " + str(best_observed_location.numpy()) + " current sample decision x: " + str(new_x.numpy()), end="\n"
                     )
                             
             self.save_parameters(train_x=train_x,
@@ -560,8 +571,13 @@ class Decoupled_EIKG_OptimizationLoop:
                  objective: Optional[MCAcquisitionObjective], ei_type: AcquisitionFunctionType, seed: int, budget: int,
                  performance_type: str, bounds: Tensor, results: Results,
                  penalty_value: Optional[Tensor] = torch.tensor([0.0]), number_initial_designs: Optional[int] = 6,
-                 costs: Optional[Tensor] = torch.ones((2))
+                 costs: Optional[Tensor] = None
                  ):
+
+        print("Starting Loop: Decoupled_EIKG_OptimizationLoop")
+        if costs is None:
+            print("Using default costs")
+            costs = torch.ones(model.getNumberOfOutputs())
 
         torch.random.manual_seed(seed)
         self.results = results
@@ -598,7 +614,7 @@ class Decoupled_EIKG_OptimizationLoop:
                                                                 type=self.acquisition_function_type,
                                                                 objective=self.objective,
                                                                 best_value=best_observed_value,
-                                                                idx=1,
+                                                                idx=None,
                                                                 number_of_outputs=self.number_of_outputs,
                                                                 penalty_value=self.penalty_value,
                                                                 iteration=iteration)
@@ -626,8 +642,8 @@ class Decoupled_EIKG_OptimizationLoop:
 
 
             print(
-                f"\nBatch {iteration:>2} finished: best value (EI) = "
-                f"({best_observed_value:>4.5f}), best location " + str(best_observed_location) + " current sample decision x: " + str(new_x) + f", end="
+                f"\nBatch{iteration:>2} finished: best value (EI) = "
+                f"({best_observed_value:>4.5f}), best location " + str(best_observed_location.numpy()) + " current sample decision x: " + str(new_x.numpy()) + f" on task {index}", end="\n"
                 )
                         
             self.save_parameters(train_x=train_x,
@@ -637,7 +653,8 @@ class Decoupled_EIKG_OptimizationLoop:
                                      best_observed_location),
                                  acqf_recommended_location=new_x,
                                  acqf_recommended_location_true_value=self.evaluate_location_true_quality(new_x),
-                                 failing_constraint = "None") #last one gives index of failing constraint
+                                 failing_constraint = "None", # last one gives index of failing constraint
+                                 acqf_recommended_output_index=index) 
             middle_time = time.time() - start_time
             print(f'took {middle_time} seconds')
         
@@ -645,7 +662,7 @@ class Decoupled_EIKG_OptimizationLoop:
         print(f'Total time: {end} seconds')
 
     def save_parameters(self, train_x, train_y, best_predicted_location,
-                        best_predicted_location_value,  acqf_recommended_location,
+                        best_predicted_location_value, acqf_recommended_output_index, acqf_recommended_location,
                         acqf_recommended_location_true_value, failing_constraint):
 
         self.results.random_seed(self.seed)
@@ -656,6 +673,7 @@ class Decoupled_EIKG_OptimizationLoop:
         self.results.save_performance_type(self.performance_type)
         self.results.save_best_predicted_location(best_predicted_location)
         self.results.save_best_predicted_location_true_value(best_predicted_location_value)
+        self.results.save_acqf_recommended_output_index(acqf_recommended_output_index)
         self.results.save_acqf_recommended_location(acqf_recommended_location)
         self.results.save_acqf_recommended_location_true_value(acqf_recommended_location_true_value)
         self.results.save_failing_constraint(failing_constraint)

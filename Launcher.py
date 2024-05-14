@@ -4,7 +4,7 @@ import torch
 from botorch.acquisition import ConstrainedMCObjective
 
 from bo.acquisition_functions.acquisition_functions import AcquisitionFunctionType
-from bo.bo_loop import OptimizationLoop, EI_Decoupled_OptimizationLoop, EI_OptimizationLoop
+from bo.bo_loop import OptimizationLoop, EI_Decoupled_OptimizationLoop, EI_OptimizationLoop, Decoupled_EIKG_OptimizationLoop
 from bo.model.Model import ConstrainedDeoupledGPModelWrapper
 from bo.result_utils.result_container import Results
 from bo.synthetic_test_functions.synthetic_test_functions import *
@@ -38,7 +38,7 @@ if __name__ == "__main__":
         constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
     )
     results = Results(filename="resultcheck_" + str(seed) + ".pkl")
-    loop = EI_OptimizationLoop(black_box_func=black_box_function,
+    loop = Decoupled_EIKG_OptimizationLoop(black_box_func=black_box_function,
                             objective=constrained_obj,
                             ei_type=AcquisitionFunctionType.BOTORCH_CONSTRAINED_EXPECTED_IMPROVEMENT,
                             bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
