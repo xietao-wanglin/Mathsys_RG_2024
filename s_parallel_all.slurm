@@ -8,4 +8,4 @@
 
 module load GCCcore/11.3.0 Python/3.10.4
 
-srun python ./RemoteLauncher.py $SLURM_ARRAY_TASK_ID
+srun python ./Launcher_All.py $SLURM_ARRAY_TASK_ID
