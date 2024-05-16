@@ -79,12 +79,12 @@ def update_state(state: ScboState, x_best_location: Tensor, model: Model):
     # Pick the best point from the batch
 
     x_best_posterior = model.posterior(x_best_location)
-    y_next = x_best_posterior.mean[0]
-    c_next = x_best_posterior.mean[1:]
+    y_next = x_best_posterior.mean[:,0]
+    c_next = x_best_posterior.mean[:,1:]
     if (c_next <= 0).all():
         # At least one new candidate is feasible
         improvement_threshold = state.best_value + 1e-3 * math.fabs(state.best_value)
-        if y_next > improvement_threshold or (state.best_constraint_values > 0).any():
+        if y_next > improvement_threshold:  # or (state.best_constraint_values > 0).any()
             state.success_counter += 1
             state.failure_counter = 0
             state.best_value = y_next.item()
@@ -92,7 +92,7 @@ def update_state(state: ScboState, x_best_location: Tensor, model: Model):
         else:
             state.success_counter = 0
             state.failure_counter += 1
-    else:  #TODO adapt this part of the code
+    else:  
         # No new candidate is feasible
         total_violation_next = c_next.clamp(min=0).sum(dim=-1)
         total_violation_center = state.best_constraint_values.clamp(min=0).sum(dim=-1)
@@ -112,4 +112,4 @@ def update_state(state: ScboState, x_best_location: Tensor, model: Model):
 def create_trust_region(x_center: Tensor, state: ScboState):
     tr_lb = torch.clamp(x_center - state.length / 2.0, 0.0, 1.0)
     tr_ub = torch.clamp(x_center + state.length / 2.0, 0.0, 1.0)
-    return tr_lb, tr_ub
+    return tr_lb.reshape(-1), tr_ub.reshape(-1)

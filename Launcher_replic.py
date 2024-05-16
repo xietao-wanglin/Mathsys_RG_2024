@@ -24,13 +24,13 @@ def constraint_callable_wrapper(constraint_idx):
     return constraint_callable
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  
 
     # Note: the launcher assumes that all inequalities are less than and the limit of the constraint is zero.
     # Transform accordingly in the problem.
     seed_list = [43]
     for s in seed_list:
-        black_box_function = ConstrainedFunc3(noise_std=1e-6, negate=True)
+        black_box_function = ConstrainedBraninNew(noise_std=1e-6, negate=True)
         num_constraints = 3
         seed = s
         print(s)

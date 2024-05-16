@@ -3,12 +3,16 @@ from botorch.test_functions.base import BaseTestProblem
 import torch
 import time
 from torch import Tensor
-from torch._C._VariableFunctions import tensor
+from torch import tensor
 from bo.acquisition_functions.Turbo import ScboState, create_trust_region
 from bo.acquisition_functions.acquisition_functions import AcquisitionFunctionType, acquisition_function_factory
 from bo.bo_loop import OptimizationLoop
 from bo.model.Model import ConstrainedDeoupledGPModelWrapper
 from bo.result_utils.result_container import Results
+from bo.acquisition_functions.Turbo import update_state
+from botorch.optim import optimize_acqf
+
+dtype = torch.float
 
 class turbo_boloop(OptimizationLoop):
 
@@ -18,8 +22,8 @@ class turbo_boloop(OptimizationLoop):
     def run(self):
         best_observed_all_sampled = []
         train_x, train_y = self.generate_initial_data(n=self.number_initial_designs)
-        state = ScboState()
-
+        state = ScboState(dim = self.black_box_func.dim, batch_size = 1)
+        model = self.update_model(train_x,train_y)
         start_time = time.time()
         for iteration in range(self.budget):
             best_observed_location, best_observed_value = self.best_observed(
@@ -28,7 +32,7 @@ class turbo_boloop(OptimizationLoop):
                 train_y=train_y,
                 model=model,
                 bounds=self.bounds)
-            
+            state = update_state(state=state, x_best_location = best_observed_location, model=model)
             tr_lb, tr_ub = create_trust_region(best_observed_location,state)
             best_observed_all_sampled.append(best_observed_value)
             #TODO restrict train_x/y to within trust region
@@ -57,6 +61,7 @@ class turbo_boloop(OptimizationLoop):
             train_y[index] = torch.cat([train_y[index], new_y])
             model = self.update_model(X=train_x, y=train_y)
 
+
             print(
                 f"\nBatch {iteration:>2} finished: best value (EI) = "
                 f"({best_observed_value:>4.5f}), best location " + str(
@@ -76,3 +81,16 @@ class turbo_boloop(OptimizationLoop):
         
         end = time.time() - start_time
         print(f'Total time: {end} seconds')
+
+    def compute_next_sample(self, acquisition_function, bounds):
+        candidates, kgvalue = optimize_acqf(
+            acq_function=acquisition_function,
+            bounds=bounds,
+            q=1,
+            num_restarts=15, # can make smaller if too slow, not too small though
+            raw_samples=128,  # used for intialization heuristic
+            options={"maxiter": 60},
+        )
+        # observe new values
+        new_x = candidates.detach()
+        return new_x, kgvalue

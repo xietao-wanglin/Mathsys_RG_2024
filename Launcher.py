@@ -8,6 +8,7 @@ from bo.bo_loop import OptimizationLoop, EI_Decoupled_OptimizationLoop, EI_Optim
 from bo.model.Model import ConstrainedDeoupledGPModelWrapper
 from bo.result_utils.result_container import Results
 from bo.synthetic_test_functions.synthetic_test_functions import *
+from bo.turbo_loop import turbo_boloop
 
 device = torch.device("cpu")
 dtype = torch.double
@@ -38,14 +39,14 @@ if __name__ == "__main__":
         constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
     )
     results = Results(filename="resultcheck_" + str(seed) + ".pkl")
-    loop = Decoupled_EIKG_OptimizationLoop(black_box_func=black_box_function,
+    loop = turbo_boloop(black_box_func=black_box_function,
                             objective=constrained_obj,
                             ei_type=AcquisitionFunctionType.BOTORCH_CONSTRAINED_EXPECTED_IMPROVEMENT,
                             bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
                             performance_type="model",
                             model=model,
                             seed=seed,
-                            budget=10,
+                            budget=20,
                             number_initial_designs=6,
                             results=results,
                             penalty_value=torch.tensor([100.0]))
