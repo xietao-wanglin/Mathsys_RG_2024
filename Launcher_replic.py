@@ -1,11 +1,10 @@
 from typing import Optional
 
-import torch
 from botorch.acquisition import ConstrainedMCObjective
 
 from bo.acquisition_functions.acquisition_functions import AcquisitionFunctionType
-from bo.bo_loop import OptimizationLoop, EI_Decoupled_OptimizationLoop, EI_OptimizationLoop, Decoupled_EIKG_OptimizationLoop
-from bo.model.Model import ConstrainedDeoupledGPModelWrapper
+from bo.bo_loop import DecoupledEikgOptimizationloop
+from Mathsys_RG_2024.bo.acquisition_functions.model.Model import ConstrainedDeoupledGPModelWrapper
 from bo.result_utils.result_container import Results
 from bo.synthetic_test_functions.synthetic_test_functions import *
 
@@ -40,16 +39,16 @@ if __name__ == "__main__":
             constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
         )
         results = Results(filename="resultcheck2" + str(seed) + ".pkl")
-        loop = Decoupled_EIKG_OptimizationLoop(black_box_func=black_box_function,
-                                objective=constrained_obj,
-                                ei_type=AcquisitionFunctionType.BOTORCH_CONSTRAINED_EXPECTED_IMPROVEMENT,
-                                bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
-                                performance_type="model",
-                                model=model,
-                                seed=seed,
-                                budget=6,
-                                number_initial_designs=6,
-                                results=results,
-                                penalty_value=torch.tensor([100.0]),
-                                costs = torch.tensor([1,1]))
+        loop = DecoupledEikgOptimizationloop(black_box_func=black_box_function,
+                                             objective=constrained_obj,
+                                             ei_type=AcquisitionFunctionType.BOTORCH_CONSTRAINED_EXPECTED_IMPROVEMENT,
+                                             bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
+                                             performance_type="model",
+                                             model=model,
+                                             seed=seed,
+                                             budget=6,
+                                             number_initial_designs=6,
+                                             results=results,
+                                             penalty_value=torch.tensor([100.0]),
+                                             costs = torch.tensor([1,1]))
         loop.run()

@@ -6,6 +6,7 @@ from botorch.utils.transforms import unnormalize
 from torch import Tensor
 
 
+
 class ConstrainedBraninNew(ConstrainedBaseTestProblem):
     _bounds = [(-5.0, 10.0), (0.0, 15.0)]
 

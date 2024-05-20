@@ -1,14 +1,12 @@
 from typing import Optional
 import sys
 
-import torch
 from botorch.acquisition import ConstrainedMCObjective
 
 from bo.acquisition_functions.acquisition_functions import AcquisitionFunctionType
-from bo.bo_loop import OptimizationLoop, EI_Decoupled_OptimizationLoop, EI_OptimizationLoop, Decoupled_EIKG_OptimizationLoop
-from bo.model.Model import ConstrainedDeoupledGPModelWrapper
+from bo.bo_loop import OptimizationLoop
+from Mathsys_RG_2024.bo.acquisition_functions.model.Model import ConstrainedDeoupledGPModelWrapper
 from bo.result_utils.result_container import Results
-from bo.constrained_functions.synthetic_problems import ConstrainedBranin
 from bo.synthetic_test_functions.synthetic_test_functions import *
 
 device = torch.device("cpu")

@@ -5,9 +5,8 @@ from botorch.acquisition import ConstrainedMCObjective
 
 from bo.acquisition_functions.acquisition_functions import AcquisitionFunctionType
 from bo.bo_loop import OptimizationLoop
-from bo.model.Model import ConstrainedDeoupledGPModelWrapper
+from Mathsys_RG_2024.bo.acquisition_functions.model.Model import ConstrainedDeoupledGPModelWrapper
 from bo.result_utils.result_container import Results
-from bo.constrained_functions.synthetic_problems import ConstrainedBranin
 from bo.synthetic_test_functions.synthetic_test_functions import MysteryFunction
 
 device = torch.device("cpu")
@@ -59,6 +58,6 @@ if __name__ == "__main__":
                                 budget=50,
                                 number_initial_designs=6,
                                 results=results,
-                                penalty_value=torch.tensor([0.0]))  # penalty value -M should be at least as low as the lowest value of the objective function
+                                penalty_value=torch.tensor([40]))  # penalty value -M should be at least as low as the lowest value of the objective function
         # play with the penalty value if the objective function has negative values....
         loop.run()
