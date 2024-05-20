@@ -5,6 +5,79 @@ from botorch.test_functions.base import ConstrainedBaseTestProblem
 from botorch.utils.transforms import unnormalize
 from torch import Tensor
 
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+import platform
+from platform import machine
+
+class MOPTA08(ConstrainedBaseTestProblem):
+    _bounds = [(0.0, 1.0)]*124
+
+    def __init__(self, noise_std=0.0, negate=False):
+        self.dim = 124
+        super().__init__(noise_std=noise_std, negate=negate)
+        self._bounds = torch.tensor(self._bounds, dtype=torch.float).transpose(-1, -2)
+        sysarch = 64 if sys.maxsize > 2 ** 32 else 32
+        machine = platform.machine().lower()
+        if machine == "armv7l": 
+            assert sysarch == 32, "Not supported"
+            self.mopta_exectutable = "mopta08_armhf.bin"
+        elif machine == "x86_64":
+            assert sysarch == 64, "Not supported"
+            self.mopta_exectutable = "mopta08_elf64.bin"
+        elif machine == "i386":
+            assert sysarch == 32, "Not supported"
+            self.mopta_exectutable = "mopta08_elf32.bin"
+        else:
+            raise RuntimeError("Machine with this architecture is not supported")
+
+        self.mopta_full_path = os.path.join(
+            Path(__file__).parent, "mopta08", self.mopta_exectutable
+        )
+
+
+
+    def evaluate_slack_true(self, X: Tensor) -> Tensor:
+        pass
+
+
+    def evaluate_true(self, X: Tensor) -> Tensor:
+        X_tf = unnormalize(X, self._bounds)
+        directory_file_descriptor = tempfile.TemporaryDirectory()
+        directory_name = directory_file_descriptor.name
+        with open(os.path.join(directory_name, "input.txt"), "w+") as tmp_file:
+            for _x in X_tf:
+                tmp_file.write(f"{_x}\n")
+        popen = subprocess.Popen(
+		    self.mopta_full_path,
+		    stdout=subprocess.PIPE,
+		    cwd=directory_name,
+	        )
+        popen.wait()
+        output = (
+		    open(os.path.join(directory_name, "output.txt"), "r")
+		    .read()
+		    .split("\n")
+        )
+        output = [x.strip() for x in output]
+        output = torch.tensor([float(x) for x in output if len(x) > 0])
+        return output
+
+
+    def evaluate_black_box(self, X: Tensor) -> Tensor:
+        y = self.evaluate_true(X).reshape(-1, 1)
+        c1 = self.evaluate_slack_true(X).reshape(-1, 1)  #
+        return torch.concat([y, c1], dim=1)
+
+    def evaluate_task(self, X: Tensor, task_index: int) -> Tensor:
+        assert task_index <= 68, "Maximum of 69 Outputs allowed (task_index <= 68)"
+        assert task_index >= 0, "No negative values for task_index allowed"
+        return self.evaluate_true(X)[task_index]
+
+
 
 class ConstrainedBraninNew(ConstrainedBaseTestProblem):
     _bounds = [(-5.0, 10.0), (0.0, 15.0)]
