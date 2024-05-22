@@ -11,7 +11,7 @@ from gpytorch.mlls import SumMarginalLogLikelihood
 
 from bo.acquisition_functions.acquisition_functions import DecoupledConstrainedKnowledgeGradient
 from bo.synthetic_test_functions.synthetic_test_functions import ConstrainedBraninNew, ConstrainedFunc3, MysteryFunction
-from bo.model.Model import ConstrainedGPModelWrapper, ConstrainedPosteriorMean, ConstrainedDeoupledGPModelWrapper
+from bo.acquisition_functions.model.Model import ConstrainedGPModelWrapper, ConstrainedPosteriorMean, ConstrainedDeoupledGPModelWrapper
 from bo.constrained_functions.synthetic_problems import ConstrainedBranin
 
 device = torch.device("cpu")

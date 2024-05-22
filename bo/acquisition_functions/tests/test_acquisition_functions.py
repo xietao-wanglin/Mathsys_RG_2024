@@ -11,7 +11,7 @@ from typing import Optional
 
 from bo.acquisition_functions.acquisition_functions import MathsysExpectedImprovement, DecoupledConstrainedKnowledgeGradient
 from bo.constrained_functions.synthetic_problems import testing_function
-from bo.samplers.samplers import quantileSampler
+from bo.acquisition_functions.samplers.samplers import quantileSampler
 
 
 class TestMathsysExpectedImprovement(BotorchTestCase):

@@ -9,7 +9,7 @@ from botorch.test_functions.base import BaseTestProblem
 from torch import Tensor
 
 from .acquisition_functions.acquisition_functions import acquisition_function_factory, AcquisitionFunctionType
-from Mathsys_RG_2024.bo.acquisition_functions.model.Model import ConstrainedPosteriorMean, \
+from bo.acquisition_functions.model.Model import ConstrainedPosteriorMean, \
     ConstrainedDeoupledGPModelWrapper
 from .result_utils.result_container import Results
 

@@ -11,7 +11,7 @@ from .acquisition_functions.Turbo import ScboState, create_trust_region
 from .acquisition_functions.Turbo import update_state
 from .acquisition_functions.acquisition_functions import AcquisitionFunctionType, acquisition_function_factory
 from .bo_loop import OptimizationLoop
-from Mathsys_RG_2024.bo.acquisition_functions.model.Model import ConstrainedDeoupledGPModelWrapper
+from bo.acquisition_functions.model.Model import ConstrainedDeoupledGPModelWrapper
 from .result_utils.result_container import Results
 
 dtype = torch.float
