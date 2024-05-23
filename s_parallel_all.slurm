@@ -3,7 +3,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem-per-cpu=3700
+#SBATCH --mem-per-cpu=14800
 #SBATCH --array=0-49
 
 module load GCCcore/11.3.0 Python/3.10.4

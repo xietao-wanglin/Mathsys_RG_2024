@@ -244,8 +244,10 @@ class EiDecoupledOptimizationloop(OptimizationLoop):
                                                                 idx=1,
                                                                 number_of_outputs=self.number_of_outputs,
                                                                 penalty_value=self.penalty_value,
-                                                                iteration=iteration)
-            new_x, _ = self.compute_next_sample(acquisition_function=acquisition_function)
+                                                                iteration=iteration,
+                                                                initial_condition_internal_optimizer=best_observed_location)
+            new_x, _ = self.compute_next_sample(acquisition_function=acquisition_function,
+                                                smart_initial_locations=best_observed_location)
             posterior = model.posterior(new_x)
             mu = posterior.mean
             std = posterior.variance.sqrt().clamp_min(1e-9)
@@ -379,8 +381,10 @@ class EiOptimizationloop(OptimizationLoop):
                                                                 idx=1,
                                                                 number_of_outputs=self.number_of_outputs,
                                                                 penalty_value=self.penalty_value,
-                                                                iteration=iteration)
-            new_x, _ = self.compute_next_sample(acquisition_function=acquisition_function)
+                                                                iteration=iteration,
+                                                                initial_condition_internal_optimizer=best_observed_location)
+            new_x, _ = self.compute_next_sample(acquisition_function=acquisition_function,
+                                                smart_initial_locations=best_observed_location)
 
             for i in range(self.model_wrapper.getNumberOfOutputs()):
                 new_y = self.evaluate_black_box_func(new_x, i)
@@ -457,9 +461,11 @@ class DecoupledEikgOptimizationloop(OptimizationLoop):
                                                                 idx=None,
                                                                 number_of_outputs=self.number_of_outputs,
                                                                 penalty_value=self.penalty_value,
-                                                                iteration=iteration)
+                                                                iteration=iteration,
+                                                                initial_condition_internal_optimizer=best_observed_location)
 
-            new_x, _ = self.compute_next_sample(acquisition_function=acquisition_function)
+            new_x, _ = self.compute_next_sample(acquisition_function=acquisition_function,
+                                                smart_initial_locations=best_observed_location)
             kg_values_list = torch.zeros(self.number_of_outputs, dtype=dtype)
             for task_idx in range(self.number_of_outputs):
                 # print("Running Task:", task_idx)
@@ -470,7 +476,8 @@ class DecoupledEikgOptimizationloop(OptimizationLoop):
                                                                     idx=task_idx,
                                                                     number_of_outputs=self.number_of_outputs,
                                                                     penalty_value=self.penalty_value,
-                                                                    iteration=iteration)
+                                                                    iteration=iteration,
+                                                                    initial_condition_internal_optimizer=best_observed_location)
 
                 kg_values_list[task_idx] = acquisition_function(new_x)
 

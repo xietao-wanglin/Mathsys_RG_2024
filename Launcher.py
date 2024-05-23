@@ -3,7 +3,7 @@ from typing import Optional
 from botorch.acquisition import ConstrainedMCObjective
 
 from bo.acquisition_functions.acquisition_functions import AcquisitionFunctionType
-from Mathsys_RG_2024.bo.acquisition_functions.model.Model import ConstrainedDeoupledGPModelWrapper
+from bo.acquisition_functions.model.Model import ConstrainedDeoupledGPModelWrapper
 from bo.result_utils.result_container import Results
 from bo.synthetic_test_functions.synthetic_test_functions import *
 from bo.turbo_loop import turbo_boloop

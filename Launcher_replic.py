@@ -3,7 +3,7 @@ from typing import Optional
 from botorch.acquisition import ConstrainedMCObjective
 
 from bo.acquisition_functions.acquisition_functions import AcquisitionFunctionType
-from bo.bo_loop import DecoupledEikgOptimizationloop
+from bo.bo_loop import *
 from bo.acquisition_functions.model.Model import ConstrainedDeoupledGPModelWrapper
 from bo.result_utils.result_container import Results
 from bo.synthetic_test_functions.synthetic_test_functions import *
@@ -29,8 +29,8 @@ if __name__ == "__main__":
     # Transform accordingly in the problem.
     seed_list = [43]
     for s in seed_list:
-        black_box_function = ConstrainedBraninNew(noise_std=1e-6, negate=True)
-        num_constraints = 3
+        black_box_function = MysteryFunction(noise_std=1e-6, negate=True)
+        num_constraints = 1
         seed = s
         print(s)
         model = ConstrainedDeoupledGPModelWrapper(num_constraints=num_constraints)
@@ -39,14 +39,14 @@ if __name__ == "__main__":
             constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
         )
         results = Results(filename="resultcheck2" + str(seed) + ".pkl")
-        loop = DecoupledEikgOptimizationloop(black_box_func=black_box_function,
+        loop = OptimizationLoop(black_box_func=black_box_function,
                                              objective=constrained_obj,
-                                             ei_type=AcquisitionFunctionType.BOTORCH_CONSTRAINED_EXPECTED_IMPROVEMENT,
+                                             ei_type=AcquisitionFunctionType.DECOUPLED_CONSTRAINED_KNOWLEDGE_GRADIENT,
                                              bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
                                              performance_type="model",
                                              model=model,
                                              seed=seed,
-                                             budget=6,
+                                             budget=60,
                                              number_initial_designs=6,
                                              results=results,
                                              penalty_value=torch.tensor([100.0]),
