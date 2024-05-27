@@ -33,6 +33,7 @@ if __name__ == "__main__":
     num_constraints = 3
     filename_pf = 'fun3'
     budget = 160
+    penalty = 2.0
 
     seed = int(sys.argv[1])
     print(f'Running seed {seed}')
@@ -55,7 +56,7 @@ if __name__ == "__main__":
                             budget=budget,
                             number_initial_designs=6,
                             results=results,
-                            penalty_value=torch.tensor([100.0]))
+                            penalty_value=torch.tensor([penalty]))
     loop_dckg.run()
 
     # EI + KG
@@ -76,7 +77,7 @@ if __name__ == "__main__":
                             budget=budget,
                             number_initial_designs=6,
                             results=results,
-                            penalty_value=torch.tensor([100.0]))
+                            penalty_value=torch.tensor([penalty]))
     loop_eikg.run()
 
     # Decoupled EI
@@ -97,7 +98,7 @@ if __name__ == "__main__":
                             budget=budget,
                             number_initial_designs=6,
                             results=results,
-                            penalty_value=torch.tensor([100.0]))
+                            penalty_value=torch.tensor([penalty]))
     loop_dei.run()
 
     # Coupled EI
@@ -118,7 +119,7 @@ if __name__ == "__main__":
                             budget=int(budget/(num_constraints+1)),
                             number_initial_designs=6,
                             results=results,
-                            penalty_value=torch.tensor([100.0]))
+                            penalty_value=torch.tensor([penalty]))
     loop_cei.run()
 
     # Coupled cKG
@@ -139,5 +140,5 @@ if __name__ == "__main__":
                             budget=int(budget/(num_constraints+1)),
                             number_initial_designs=6,
                             results=results,
-                            penalty_value=torch.tensor([100.0]))
+                            penalty_value=torch.tensor([penalty]))
     loop_ckg.run()
