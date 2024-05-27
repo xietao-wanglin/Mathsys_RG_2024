@@ -187,8 +187,8 @@ class OptimizationLoop:
             bounds=self.bounds,
             gen_candidates=gen_candidates_scipy,
             q=1,
-            num_restarts=10,  # can make smaller if too slow, not too small though
-            raw_samples=64,  # used for intialization heuristic
+            num_restarts=15,  # can make smaller if too slow, not too small though
+            raw_samples=72,  # used for intialization heuristic
             options={"maxiter": 100},
         )
         # observe new values
