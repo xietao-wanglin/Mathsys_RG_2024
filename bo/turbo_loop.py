@@ -68,14 +68,12 @@ class turbo_boloop(OptimizationLoop):
                     best_observed_location) + " current sample decision x: " + str(new_x_list[index]) + f" on task {index}\n",
                 end="",
             )
-            self.save_parameters(train_x=train_x,
-                                 train_y=train_y,
-                                 best_predicted_location=best_observed_location,
+            self.save_parameters(train_x=train_x, train_y=train_y, best_predicted_location=best_observed_location,
                                  best_predicted_location_value=self.evaluate_location_true_quality(
-                                     best_observed_location),
+                                     best_observed_location), acqf_recommended_output_index=index,
                                  acqf_recommended_location=new_x_list[index],
-                                 acqf_recommended_location_true_value=self.evaluate_location_true_quality(new_x_list[index]),
-                                 acqf_recommended_output_index=index)
+                                 acqf_recommended_location_true_value=self.evaluate_location_true_quality(
+                                     new_x_list[index]))
             middle_time = time.time() - start_time
             print(f'took {middle_time} seconds')
         

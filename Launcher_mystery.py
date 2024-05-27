@@ -59,6 +59,6 @@ if __name__ == "__main__":
                                 budget=50,
                                 number_initial_designs=6,
                                 results=results,
-                                penalty_value=torch.tensor([0.0]))  # penalty value -M should be at least as low as the lowest value of the objective function
+                                penalty_value=torch.tensor([20.0]))  # penalty value -M should be at least as low as the lowest value of the objective function
         # play with the penalty value if the objective function has negative values....
         loop.run()

@@ -11,6 +11,7 @@ class Results():
         self.performance_type = None
         self.number_initial_samples = None
         self.budget = None
+        self.acqf_values = []
         self.best_predicted_location = []
         self.best_predicted_location_true_value = []
         self.acqf_recommended_location = []
@@ -18,7 +19,6 @@ class Results():
         self.acqf_recommended_output_index = []
         self.failing_constraint = []
         self.evals = []
-
 
     def save_failing_constraint(self, k):
         if k == -1:
@@ -94,6 +94,6 @@ class Results():
                 "acqf_recommended_output_index:": self.acqf_recommended_output_index,
                 "failing_index:": self.failing_constraint,
                 "evaluated_functions": self.evals}
-    
-    
-    
+
+    def save_acqf_values(self, acqf_values):
+        self.acqf_values.append(acqf_values)

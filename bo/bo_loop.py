@@ -3,14 +3,13 @@ import warnings
 from typing import Optional
 
 import torch
-from botorch import gen_candidates_torch, gen_candidates_scipy
+from botorch import gen_candidates_scipy
 from botorch.acquisition import MCAcquisitionObjective
 from botorch.optim import optimize_acqf
 from botorch.test_functions.base import BaseTestProblem
 from torch import Tensor
 
-from bo.acquisition_functions.acquisition_functions import acquisition_function_factory, AcquisitionFunctionType, \
-    DecoupledConstrainedKnowledgeGradient
+from bo.acquisition_functions.acquisition_functions import acquisition_function_factory, AcquisitionFunctionType
 from bo.model.Model import ConstrainedPosteriorMean, ConstrainedDeoupledGPModelWrapper
 from bo.result_utils.result_container import Results
 
@@ -82,6 +81,7 @@ class OptimizationLoop:
                                                           smart_initial_locations=best_observed_location)
                 kg_values_list[task_idx] = kgvalue
                 new_x_list.append(new_x)
+                print("kg value", kgvalue, task_idx)
             print("kg values", kg_values_list)
             index = torch.argmax(torch.tensor(kg_values_list) / self.costs)
             new_y = self.evaluate_black_box_func(new_x_list[index], index)
@@ -105,7 +105,7 @@ class OptimizationLoop:
                                  acqf_recommended_location=new_x_list[index],
                                  acqf_recommended_location_true_value=self.evaluate_location_true_quality(
                                      new_x_list[index]),
-                                 acqf_recommended_output_index=index)
+                                 acqf_recommended_output_index=index, acqf_values=kg_values_list)
             middle_time = time.time() - start_time
             print(f'took {middle_time} seconds')
 
@@ -114,12 +114,13 @@ class OptimizationLoop:
 
     def save_parameters(self, train_x, train_y, best_predicted_location,
                         best_predicted_location_value, acqf_recommended_output_index, acqf_recommended_location,
-                        acqf_recommended_location_true_value):
+                        acqf_recommended_location_true_value, acqf_values=None):
 
         self.results.random_seed(self.seed)
         self.results.save_budget(self.budget)
         self.results.save_input_data(train_x)
         self.results.save_output_data(train_y)
+        self.results.save_acqf_values(acqf_values)
         self.results.save_number_initial_points(self.number_initial_designs)
         self.results.save_performance_type(self.performance_type)
         self.results.save_best_predicted_location(best_predicted_location)
@@ -181,7 +182,7 @@ class OptimizationLoop:
         return argmax_mean, max_mean
 
     def compute_next_sample(self, acquisition_function, smart_initial_locations=None):
-        candidates, kgvalue = optimize_acqf(
+        candidates, _ = optimize_acqf(
             acq_function=acquisition_function,
             bounds=self.bounds,
             gen_candidates=gen_candidates_scipy,
@@ -192,9 +193,11 @@ class OptimizationLoop:
         )
         # observe new values
         x_optimised = candidates.detach()
-        x_optimised_val = kgvalue.detach()
+        x_optimised_val = acquisition_function.evaluate_kg_value(x_optimised,
+                                                                 number_of_restarts=20,
+                                                                 number_of_raw_points=128).detach()
         if smart_initial_locations is not None:
-            candidates, kgvalue = optimize_acqf(
+            candidates, _ = optimize_acqf(
                 acq_function=acquisition_function,
                 bounds=self.bounds,
                 num_restarts=smart_initial_locations.shape[0],
@@ -203,11 +206,13 @@ class OptimizationLoop:
                 options={"maxiter": 100}
             )
             x_smart_optimised = candidates.detach()
-            x_smart_optimised_val = kgvalue.detach()
+            x_smart_optimised_val = acquisition_function.evaluate_kg_value(x_smart_optimised[None, :],
+                                                                           number_of_restarts=20,
+                                                                           number_of_raw_points=128).detach()
             if x_smart_optimised_val >= x_optimised_val:
                 return x_smart_optimised[None, :], x_smart_optimised_val
 
-        return x_optimised, kgvalue
+        return x_optimised, x_optimised_val
 
 
 class EI_Decoupled_OptimizationLoop(OptimizationLoop):

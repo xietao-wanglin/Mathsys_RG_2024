@@ -2,7 +2,7 @@ from enum import Enum, auto
 from typing import Optional, Union, Any
 
 import torch
-from botorch import gen_candidates_torch, gen_candidates_scipy
+from botorch import gen_candidates_torch
 from botorch.acquisition import ExpectedImprovement, \
     qExpectedImprovement, MCAcquisitionObjective, qKnowledgeGradient, MCAcquisitionFunction, \
     DecoupledAcquisitionFunction
@@ -17,7 +17,7 @@ from botorch.utils.transforms import match_batch_shape, t_batch_mode_transform
 from torch import Tensor
 
 from bo.model.Model import ConstrainedPosteriorMean
-from bo.samplers.samplers import cKGSampler, quantileSampler
+from bo.samplers.samplers import quantileSampler
 
 
 class AcquisitionFunctionType(Enum):
@@ -72,10 +72,6 @@ def acquisition_function_factory(type, model, objective, best_value, idx, number
                                                      X_evaluation_mask=x_eval_mask,
                                                      penalty_value=penalty_value,
                                                      x_best_location=initial_condition_internal_optimizer)
-        # return MCConstrainedKnowledgeGradient(model, num_fantasies=5,
-        #                                      sampler=sampler,
-        #                                      current_value=best_value,
-        #                                      objective=objective)
     elif type is AcquisitionFunctionType.DECOUPLED_CONSTRAINED_KNOWLEDGE_GRADIENT:
         sampler = quantileSampler(sample_shape=torch.Size([5]))
         sampler_list = ListSampler(*[sampler] * number_of_outputs)
@@ -84,9 +80,9 @@ def acquisition_function_factory(type, model, objective, best_value, idx, number
         x_eval_mask[0, idx] = 1
         return DecoupledConstrainedKnowledgeGradient(model, sampler=sampler_list, num_fantasies=5,
                                                      objective=objective,
-                                                     number_of_raw_points=72, # can make smaller if speed
-                                                     number_of_restarts=15, # this too, not too small though
-                                                     seed = iteration,
+                                                     number_of_raw_points=72,  # can make smaller if speed
+                                                     number_of_restarts=15,  # this too, not too small though
+                                                     seed=iteration,
                                                      # play with this if it gets too slow...get it down a little...
                                                      X_evaluation_mask=x_eval_mask,
                                                      penalty_value=penalty_value,
@@ -137,7 +133,6 @@ class DecoupledConstrainedKnowledgeGradient(DecoupledAcquisitionFunction, MCAcqu
                                             Y=constrained_posterior_mean_model(raw_points),
                                             n=self.number_of_restarts, eta=2.0)
         restart_points = torch.cat([restart_points, best_location_adapted_dimensions], dim=0)
-
         with torch.enable_grad():
             bestx, _ = gen_candidates_torch(initial_conditions=restart_points,
                                             acquisition_function=constrained_posterior_mean_model,
@@ -146,11 +141,21 @@ class DecoupledConstrainedKnowledgeGradient(DecoupledAcquisitionFunction, MCAcqu
                                             options={"maxiter": 100})
             bestvals = constrained_posterior_mean_model(bestx)
 
-        if self.x_best_location is not None:
-            fval_best_location = constrained_posterior_mean_model(best_location_adapted_dimensions)
-            bestvals = bestvals - fval_best_location
         bestval_sample = bestvals.max(dim=0)[0]
         kgvals = bestval_sample.mean(dim=0)
+        return kgvals
+
+    def evaluate_kg_value(self, X: Tensor, number_of_restarts, number_of_raw_points):
+        self.number_of_restarts = number_of_restarts
+        self.number_of_raw_points = number_of_raw_points
+        best_predictive_mean = self.forward(X)
+        fantasy_model = self.model.fantasize(X=X, sampler=self.sampler,
+                                             evaluation_mask=self.construct_evaluation_mask(X))
+        constrained_posterior_mean_model = ConstrainedPosteriorMean(fantasy_model, penalty_value=self.penalty_value)
+        batch_shape = constrained_posterior_mean_model.model.batch_shape
+        best_location_adapted_dimensions = self.adapt_x_location_dim(batch_shape)
+        fval_best_location = constrained_posterior_mean_model(best_location_adapted_dimensions).max(dim=0)[0]
+        kgvals = best_predictive_mean - fval_best_location.mean(dim=0)
         return kgvals
 
     def adapt_x_location_dim(self, batch_shape):
