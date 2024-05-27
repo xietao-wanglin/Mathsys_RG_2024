@@ -3,7 +3,7 @@ from typing import Optional
 from botorch.acquisition import ConstrainedMCObjective
 
 from bo.acquisition_functions.acquisition_functions import AcquisitionFunctionType
-from bo.bo_loop import OptimizationLoop
+from bo.bo_loop import *
 from bo.model.Model import ConstrainedDeoupledGPModelWrapper
 from bo.result_utils.result_container import Results
 from bo.synthetic_test_functions.synthetic_test_functions import *
@@ -39,9 +39,9 @@ if __name__ == "__main__":
             constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
         )
         results = Results(filename="resultcheck2" + str(seed) + ".pkl")
-        loop = OptimizationLoop(black_box_func=black_box_function,
+        loop = EI_OptimizationLoop(black_box_func=black_box_function,
                                 objective=constrained_obj,
-                                ei_type=AcquisitionFunctionType.DECOUPLED_CONSTRAINED_KNOWLEDGE_GRADIENT,
+                                ei_type=AcquisitionFunctionType.BOTORCH_CONSTRAINED_EXPECTED_IMPROVEMENT,
                                 bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device,
                                                     dtype=dtype),
                                 performance_type="model",

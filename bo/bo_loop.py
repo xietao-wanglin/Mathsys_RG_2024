@@ -241,11 +241,15 @@ class EI_Decoupled_OptimizationLoop(OptimizationLoop):
                 bounds=self.bounds)
             best_observed_all_sampled.append(best_observed_value)
 
-            acquisition_function = acquisition_function_factory(type=self.acquisition_function_type, model=model,
+            acquisition_function = acquisition_function_factory(model=model,
+                                                                type=self.acquisition_function_type,
                                                                 objective=self.objective,
-                                                                best_value=best_observed_value, idx=1,
+                                                                best_value=best_observed_value,
+                                                                idx=1,
                                                                 number_of_outputs=self.number_of_outputs,
-                                                                penalty_value=self.penalty_value, iteration=iteration)
+                                                                penalty_value=self.penalty_value,
+                                                                iteration=iteration,
+                                                                initial_condition_internal_optimizer=best_observed_location)
             new_x, _ = self.compute_next_sample(acquisition_function=acquisition_function,
                                                 smart_initial_locations=best_observed_location)
             posterior = model.posterior(new_x)
@@ -345,59 +349,37 @@ class EI_Decoupled_OptimizationLoop(OptimizationLoop):
         self.results.save_acqf_recommended_location_true_value(acqf_recommended_location_true_value)
         self.results.save_failing_constraint(failing_constraint)
         self.results.save_evaluated_functions(func_evals)
-
         self.results.generate_pkl_file()
 
-    def evaluate_location_true_quality(self, X):
-        f_value = self.evaluate_black_box_func(X, 0)
-        if self.is_design_feasible(X):
-            return f_value
-        return -self.penalty_value
-
-    def is_design_feasible(self, X):
-        for idx in range(1, self.model_wrapper.getNumberOfOutputs()):
-            c_val = self.evaluate_black_box_func(X, idx)
-            if c_val > 0:
-                return False
-        return True
-
-    def evaluate_black_box_func(self, X, task_idx):
-        return self.black_box_func.evaluate_task(X, task_idx)
-
-    def generate_initial_data(self, n: int):
-        # generate training data
-        train_x_list = []
-        train_y_list = []
-        for i in range(self.model_wrapper.getNumberOfOutputs()):
-            train_x = torch.rand(n, self.dim_x, device=device, dtype=dtype)
-            train_x_list += [train_x]
-            train_y_list += [self.evaluate_black_box_func(train_x, i)]
-
-        return train_x_list, train_y_list
-
-    def update_model(self, X, y):
-        self.model_wrapper.fit(X, y)
-        optimized_model = self.model_wrapper.optimize()
-        return optimized_model
-
-    def best_observed(self, best_value_computation_type, train_x, train_y, model, bounds):
-        if best_value_computation_type == "sampled":
-            return self.compute_best_sampled_value(train_x, train_y)
-        elif best_value_computation_type == "model":
-            return self.compute_best_posterior_mean(model, bounds)
-
-    def compute_best_sampled_value(self, train_x, train_y):
-        return train_x[torch.argmax(train_y)], torch.max(train_y)
-
-    def compute_best_posterior_mean(self, model, bounds):
-        argmax_mean, max_mean = optimize_acqf(
-            acq_function=ConstrainedPosteriorMean(model, maximize=True, penalty_value=self.penalty_value),
-            bounds=bounds,
+    def compute_next_sample(self, acquisition_function, smart_initial_locations=None):
+        candidates, kgvalue = optimize_acqf(
+            acq_function=acquisition_function,
+            bounds=self.bounds,
             q=1,
-            num_restarts=20,
-            raw_samples=2048,
+            num_restarts=15, # can make smaller if too slow, not too small though
+            raw_samples=72,  # used for intialization heuristic
+            options={"maxiter": 100},
         )
-        return argmax_mean, max_mean
+        print("finished opt point")
+        # observe new values
+        x_optimised = candidates.detach()
+        x_optimised_val = kgvalue.detach()
+        if smart_initial_locations is not None:
+            candidates, kgvalue = optimize_acqf(
+                acq_function=acquisition_function,
+                bounds=self.bounds,
+                num_restarts=smart_initial_locations.shape[0],
+                batch_initial_conditions=smart_initial_locations,
+                q=1,
+                options={"maxiter": 100}
+            )
+            x_smart_optimised = candidates.detach()
+            x_smart_optimised_val = kgvalue.detach()
+            print("finished best")
+            if x_smart_optimised_val >= x_optimised_val:
+                return x_smart_optimised[None, :], x_smart_optimised_val
+
+        return x_optimised, kgvalue
 
 
 class EI_OptimizationLoop(OptimizationLoop):
@@ -426,11 +408,15 @@ class EI_OptimizationLoop(OptimizationLoop):
                 bounds=self.bounds)
             best_observed_all_sampled.append(best_observed_value)
 
-            acquisition_function = acquisition_function_factory(type=self.acquisition_function_type, model=model,
+            acquisition_function = acquisition_function_factory(model=model,
+                                                                type=self.acquisition_function_type,
                                                                 objective=self.objective,
-                                                                best_value=best_observed_value, idx=1,
+                                                                best_value=best_observed_value,
+                                                                idx=1,
                                                                 number_of_outputs=self.number_of_outputs,
-                                                                penalty_value=self.penalty_value, iteration=iteration)
+                                                                penalty_value=self.penalty_value,
+                                                                iteration=iteration,
+                                                                initial_condition_internal_optimizer=best_observed_location)
             new_x, _ = self.compute_next_sample(acquisition_function=acquisition_function,
                                                 smart_initial_locations=best_observed_location)
 
@@ -475,57 +461,35 @@ class EI_OptimizationLoop(OptimizationLoop):
         self.results.save_acqf_recommended_location_true_value(acqf_recommended_location_true_value)
         self.results.generate_pkl_file()
 
-    def evaluate_location_true_quality(self, X):
-        f_value = self.evaluate_black_box_func(X, 0)
-        if self.is_design_feasible(X):
-            return f_value
-        return -self.penalty_value
-
-    def is_design_feasible(self, X):
-        for idx in range(1, self.model_wrapper.getNumberOfOutputs()):
-            c_val = self.evaluate_black_box_func(X, idx)
-            if c_val > 0:
-                return False
-        return True
-
-    def evaluate_black_box_func(self, X, task_idx):
-        return self.black_box_func.evaluate_task(X, task_idx)
-
-    def generate_initial_data(self, n: int):
-        # generate training data
-        train_x_list = []
-        train_y_list = []
-        for i in range(self.model_wrapper.getNumberOfOutputs()):
-            train_x = torch.rand(n, self.dim_x, device=device, dtype=dtype)
-            train_x_list += [train_x]
-            train_y_list += [self.evaluate_black_box_func(train_x, i)]
-
-        return train_x_list, train_y_list
-
-    def update_model(self, X, y):
-        self.model_wrapper.fit(X, y)
-        optimized_model = self.model_wrapper.optimize()
-        return optimized_model
-
-    def best_observed(self, best_value_computation_type, train_x, train_y, model, bounds):
-        if best_value_computation_type == "sampled":
-            return self.compute_best_sampled_value(train_x, train_y)
-        elif best_value_computation_type == "model":
-            return self.compute_best_posterior_mean(model, bounds)
-
-    def compute_best_sampled_value(self, train_x, train_y):
-        return train_x[torch.argmax(train_y)], torch.max(train_y)
-
-    def compute_best_posterior_mean(self, model, bounds):
-        argmax_mean, max_mean = optimize_acqf(
-            acq_function=ConstrainedPosteriorMean(model, maximize=True, penalty_value=self.penalty_value),
-            bounds=bounds,
+    def compute_next_sample(self, acquisition_function, smart_initial_locations=None):
+        candidates, kgvalue = optimize_acqf(
+            acq_function=acquisition_function,
+            bounds=self.bounds,
             q=1,
-            num_restarts=20,
-            raw_samples=2048,
+            num_restarts=15, # can make smaller if too slow, not too small though
+            raw_samples=72,  # used for intialization heuristic
+            options={"maxiter": 100},
         )
-        return argmax_mean, max_mean
+        print("finished opt point")
+        # observe new values
+        x_optimised = candidates.detach()
+        x_optimised_val = kgvalue.detach()
+        if smart_initial_locations is not None:
+            candidates, kgvalue = optimize_acqf(
+                acq_function=acquisition_function,
+                bounds=self.bounds,
+                num_restarts=smart_initial_locations.shape[0],
+                batch_initial_conditions=smart_initial_locations,
+                q=1,
+                options={"maxiter": 100}
+            )
+            x_smart_optimised = candidates.detach()
+            x_smart_optimised_val = kgvalue.detach()
+            print("finished best")
+            if x_smart_optimised_val >= x_optimised_val:
+                return x_smart_optimised[None, :], x_smart_optimised_val
 
+        return x_optimised, kgvalue
 
 class Decoupled_EIKG_OptimizationLoop(OptimizationLoop):
 
@@ -553,21 +517,30 @@ class Decoupled_EIKG_OptimizationLoop(OptimizationLoop):
                 bounds=self.bounds)
             best_observed_all_sampled.append(best_observed_value)
 
-            acquisition_function = acquisition_function_factory(type=self.acquisition_function_type, model=model,
+            acquisition_function = acquisition_function_factory(model=model,
+                                                                type=self.acquisition_function_type,
                                                                 objective=self.objective,
-                                                                best_value=best_observed_value, idx=None,
+                                                                best_value=best_observed_value,
+                                                                idx=None,
                                                                 number_of_outputs=self.number_of_outputs,
-                                                                penalty_value=self.penalty_value, iteration=iteration)
+                                                                penalty_value=self.penalty_value,
+                                                                iteration=iteration,
+                                                                initial_condition_internal_optimizer=best_observed_location)
 
             new_x, _ = self.compute_next_sample(acquisition_function=acquisition_function,
                                                 smart_initial_locations=best_observed_location)
             kg_values_list = torch.zeros(self.number_of_outputs, dtype=dtype)
             for task_idx in range(self.number_of_outputs):
                 # print("Running Task:", task_idx)
-                acquisition_function = acquisition_function_factory(
-                    type=AcquisitionFunctionType.DECOUPLED_CONSTRAINED_KNOWLEDGE_GRADIENT, model=model,
-                    objective=self.objective, best_value=best_observed_value, idx=task_idx,
-                    number_of_outputs=self.number_of_outputs, penalty_value=self.penalty_value, iteration=iteration)
+                acquisition_function = acquisition_function_factory(model=model,
+                                                                    type=AcquisitionFunctionType.DECOUPLED_CONSTRAINED_KNOWLEDGE_GRADIENT,
+                                                                    objective=self.objective,
+                                                                    best_value=best_observed_value,
+                                                                    idx=task_idx,
+                                                                    number_of_outputs=self.number_of_outputs,
+                                                                    penalty_value=self.penalty_value,
+                                                                    iteration=iteration,
+                                                                    initial_condition_internal_optimizer=best_observed_location)
 
                 kg_values_list[task_idx] = acquisition_function(new_x)
 
@@ -618,53 +591,32 @@ class Decoupled_EIKG_OptimizationLoop(OptimizationLoop):
 
         self.results.generate_pkl_file()
 
-    def evaluate_location_true_quality(self, X):
-        f_value = self.evaluate_black_box_func(X, 0)
-        if self.is_design_feasible(X):
-            return f_value
-        return -self.penalty_value
-
-    def is_design_feasible(self, X):
-        for idx in range(1, self.model_wrapper.getNumberOfOutputs()):
-            c_val = self.evaluate_black_box_func(X, idx)
-            if c_val > 0:
-                return False
-        return True
-
-    def evaluate_black_box_func(self, X, task_idx):
-        return self.black_box_func.evaluate_task(X, task_idx)
-
-    def generate_initial_data(self, n: int):
-        # generate training data
-        train_x_list = []
-        train_y_list = []
-        for i in range(self.model_wrapper.getNumberOfOutputs()):
-            train_x = torch.rand(n, self.dim_x, device=device, dtype=dtype)
-            train_x_list += [train_x]
-            train_y_list += [self.evaluate_black_box_func(train_x, i)]
-
-        return train_x_list, train_y_list
-
-    def update_model(self, X, y):
-        self.model_wrapper.fit(X, y)
-        optimized_model = self.model_wrapper.optimize()
-        return optimized_model
-
-    def best_observed(self, best_value_computation_type, train_x, train_y, model, bounds):
-        if best_value_computation_type == "sampled":
-            return self.compute_best_sampled_value(train_x, train_y)
-        elif best_value_computation_type == "model":
-            return self.compute_best_posterior_mean(model, bounds)
-
-    def compute_best_sampled_value(self, train_x, train_y):
-        return train_x[torch.argmax(train_y)], torch.max(train_y)
-
-    def compute_best_posterior_mean(self, model, bounds):
-        argmax_mean, max_mean = optimize_acqf(
-            acq_function=ConstrainedPosteriorMean(model, maximize=True, penalty_value=self.penalty_value),
-            bounds=bounds,
+    def compute_next_sample(self, acquisition_function, smart_initial_locations=None):
+        candidates, kgvalue = optimize_acqf(
+            acq_function=acquisition_function,
+            bounds=self.bounds,
             q=1,
-            num_restarts=20,
-            raw_samples=2048,
+            num_restarts=15, # can make smaller if too slow, not too small though
+            raw_samples=72,  # used for intialization heuristic
+            options={"maxiter": 100},
         )
-        return argmax_mean, max_mean
+        print("finished opt point")
+        # observe new values
+        x_optimised = candidates.detach()
+        x_optimised_val = kgvalue.detach()
+        if smart_initial_locations is not None:
+            candidates, kgvalue = optimize_acqf(
+                acq_function=acquisition_function,
+                bounds=self.bounds,
+                num_restarts=smart_initial_locations.shape[0],
+                batch_initial_conditions=smart_initial_locations,
+                q=1,
+                options={"maxiter": 100}
+            )
+            x_smart_optimised = candidates.detach()
+            x_smart_optimised_val = kgvalue.detach()
+            print("finished best")
+            if x_smart_optimised_val >= x_optimised_val:
+                return x_smart_optimised[None, :], x_smart_optimised_val
+
+        return x_optimised, kgvalue
