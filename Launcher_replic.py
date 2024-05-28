@@ -39,7 +39,7 @@ if __name__ == "__main__":
             constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
         )
         results = Results(filename="resultcheck2" + str(seed) + ".pkl")
-        loop = EI_OptimizationLoop(black_box_func=black_box_function,
+        loop = EI_Decoupled_OptimizationLoop(black_box_func=black_box_function,
                                 objective=constrained_obj,
                                 ei_type=AcquisitionFunctionType.BOTORCH_CONSTRAINED_EXPECTED_IMPROVEMENT,
                                 bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device,
@@ -47,8 +47,8 @@ if __name__ == "__main__":
                                 performance_type="model",
                                 model=model,
                                 seed=seed,
-                                budget=6,
+                                budget=60,
                                 number_initial_designs=6,
                                 results=results,
-                                penalty_value=torch.tensor([2.0]))
+                                penalty_value=torch.tensor([40.0]))
         loop.run()

@@ -29,116 +29,127 @@ def constraint_callable_wrapper(constraint_idx):
 if __name__ == "__main__":
 
     # Set problem and constrains here
-    black_box_function = ConstrainedFunc3(noise_std=1e-6, negate=True)
-    num_constraints = 3
+    black_box_function = MysteryFunction(noise_std=1e-6, negate=True)
+    num_constraints = 1
     filename_pf = 'fun3'
-    budget = 160
-    penalty = 2.0
+    budget = 240
+    penalty = 40.0
+
+    DCKG = False
+    EIKG = False
+    DEI = False
+    CEI = False
+    CKG = True
 
     seed = int(sys.argv[1])
     print(f'Running seed {seed}')
 
     # Decoupled cKG
-    print('\n Starting dcKG:')
-    model = ConstrainedDeoupledGPModelWrapper(num_constraints=num_constraints)
-    constrained_obj = ConstrainedMCObjective(
-        objective=obj_callable,
-        constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
-    )
-    results = Results(filename=filename_pf + "dckg" + str(seed) + ".pkl")
-    loop_dckg = OptimizationLoop(black_box_func=black_box_function,
-                            objective=constrained_obj,
-                            ei_type=AcquisitionFunctionType.DECOUPLED_CONSTRAINED_KNOWLEDGE_GRADIENT,
-                            bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
-                            performance_type="model",
-                            model=model,
-                            seed=seed,
-                            budget=budget,
-                            number_initial_designs=6,
-                            results=results,
-                            penalty_value=torch.tensor([penalty]))
-    loop_dckg.run()
+    if DCKG:
+        print('\n Starting dcKG:')
+        model = ConstrainedDeoupledGPModelWrapper(num_constraints=num_constraints)
+        constrained_obj = ConstrainedMCObjective(
+            objective=obj_callable,
+            constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
+        )
+        results = Results(filename=filename_pf + "dckg" + str(seed) + ".pkl")
+        loop_dckg = OptimizationLoop(black_box_func=black_box_function,
+                                objective=constrained_obj,
+                                ei_type=AcquisitionFunctionType.DECOUPLED_CONSTRAINED_KNOWLEDGE_GRADIENT,
+                                bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
+                                performance_type="model",
+                                model=model,
+                                seed=seed,
+                                budget=budget,
+                                number_initial_designs=6,
+                                results=results,
+                                penalty_value=torch.tensor([penalty]))
+        loop_dckg.run()
 
     # EI + KG
-    print('\n Starting EI+KG:')
-    model = ConstrainedDeoupledGPModelWrapper(num_constraints=num_constraints)
-    constrained_obj = ConstrainedMCObjective(
-        objective=obj_callable,
-        constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
-    )
-    results = Results(filename=filename_pf + "eikg" + str(seed) + ".pkl")
-    loop_eikg = Decoupled_EIKG_OptimizationLoop(black_box_func=black_box_function,
-                            objective=constrained_obj,
-                            ei_type=AcquisitionFunctionType.BOTORCH_CONSTRAINED_EXPECTED_IMPROVEMENT,
-                            bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
-                            performance_type="model",
-                            model=model,
-                            seed=seed,
-                            budget=budget,
-                            number_initial_designs=6,
-                            results=results,
-                            penalty_value=torch.tensor([penalty]))
-    loop_eikg.run()
+    if EIKG:
+        print('\n Starting EI+KG:')
+        model = ConstrainedDeoupledGPModelWrapper(num_constraints=num_constraints)
+        constrained_obj = ConstrainedMCObjective(
+            objective=obj_callable,
+            constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
+        )
+        results = Results(filename=filename_pf + "eikg" + str(seed) + ".pkl")
+        loop_eikg = Decoupled_EIKG_OptimizationLoop(black_box_func=black_box_function,
+                                objective=constrained_obj,
+                                ei_type=AcquisitionFunctionType.BOTORCH_CONSTRAINED_EXPECTED_IMPROVEMENT,
+                                bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
+                                performance_type="model",
+                                model=model,
+                                seed=seed,
+                                budget=budget,
+                                number_initial_designs=6,
+                                results=results,
+                                penalty_value=torch.tensor([penalty]))
+        loop_eikg.run()
 
     # Decoupled EI
-    print('\n Starting dEI:')
-    model = ConstrainedDeoupledGPModelWrapper(num_constraints=num_constraints)
-    constrained_obj = ConstrainedMCObjective(
-        objective=obj_callable,
-        constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
-    )
-    results = Results(filename=filename_pf + "dei" + str(seed) + ".pkl")
-    loop_dei = EI_Decoupled_OptimizationLoop(black_box_func=black_box_function,
-                            objective=constrained_obj,
-                            ei_type=AcquisitionFunctionType.BOTORCH_CONSTRAINED_EXPECTED_IMPROVEMENT,
-                            bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
-                            performance_type="model",
-                            model=model,
-                            seed=seed,
-                            budget=budget,
-                            number_initial_designs=6,
-                            results=results,
-                            penalty_value=torch.tensor([penalty]))
-    loop_dei.run()
+    if DEI:
+        print('\n Starting dEI:')
+        model = ConstrainedDeoupledGPModelWrapper(num_constraints=num_constraints)
+        constrained_obj = ConstrainedMCObjective(
+            objective=obj_callable,
+            constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
+        )
+        results = Results(filename=filename_pf + "dei" + str(seed) + ".pkl")
+        loop_dei = EI_Decoupled_OptimizationLoop(black_box_func=black_box_function,
+                                objective=constrained_obj,
+                                ei_type=AcquisitionFunctionType.BOTORCH_CONSTRAINED_EXPECTED_IMPROVEMENT,
+                                bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
+                                performance_type="model",
+                                model=model,
+                                seed=seed,
+                                budget=budget,
+                                number_initial_designs=6,
+                                results=results,
+                                penalty_value=torch.tensor([penalty]))
+        loop_dei.run()
 
     # Coupled EI
-    print('\n Starting cEI:')
-    model = ConstrainedDeoupledGPModelWrapper(num_constraints=num_constraints)
-    constrained_obj = ConstrainedMCObjective(
-        objective=obj_callable,
-        constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
-    )
-    results = Results(filename=filename_pf + "cei" + str(seed) + ".pkl")
-    loop_cei = EI_OptimizationLoop(black_box_func=black_box_function,
-                            objective=constrained_obj,
-                            ei_type=AcquisitionFunctionType.BOTORCH_CONSTRAINED_EXPECTED_IMPROVEMENT,
-                            bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
-                            performance_type="model",
-                            model=model,
-                            seed=seed,
-                            budget=int(budget/(num_constraints+1)),
-                            number_initial_designs=6,
-                            results=results,
-                            penalty_value=torch.tensor([penalty]))
-    loop_cei.run()
+    if CEI:
+        print('\n Starting cEI:')
+        model = ConstrainedDeoupledGPModelWrapper(num_constraints=num_constraints)
+        constrained_obj = ConstrainedMCObjective(
+            objective=obj_callable,
+            constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
+        )
+        results = Results(filename=filename_pf + "cei" + str(seed) + ".pkl")
+        loop_cei = EI_OptimizationLoop(black_box_func=black_box_function,
+                                objective=constrained_obj,
+                                ei_type=AcquisitionFunctionType.BOTORCH_CONSTRAINED_EXPECTED_IMPROVEMENT,
+                                bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
+                                performance_type="model",
+                                model=model,
+                                seed=seed,
+                                budget=int(budget/(num_constraints+1)),
+                                number_initial_designs=6,
+                                results=results,
+                                penalty_value=torch.tensor([penalty]))
+        loop_cei.run()
 
     # Coupled cKG
-    print('\n Starting cKG:')
-    model = ConstrainedDeoupledGPModelWrapper(num_constraints=num_constraints)
-    constrained_obj = ConstrainedMCObjective(
-        objective=obj_callable,
-        constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
-    )
-    results = Results(filename=filename_pf + "ckg" + str(seed) + ".pkl")
-    loop_ckg = EI_OptimizationLoop(black_box_func=black_box_function,
-                            objective=constrained_obj,
-                            ei_type=AcquisitionFunctionType.MC_CONSTRAINED_KNOWLEDGE_GRADIENT,
-                            bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
-                            performance_type="model",
-                            model=model,
-                            seed=seed,
-                            budget=int(budget/(num_constraints+1)),
-                            number_initial_designs=6,
-                            results=results,
-                            penalty_value=torch.tensor([penalty]))
-    loop_ckg.run()
+    if CKG:
+        print('\n Starting cKG:')
+        model = ConstrainedDeoupledGPModelWrapper(num_constraints=num_constraints)
+        constrained_obj = ConstrainedMCObjective(
+            objective=obj_callable,
+            constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
+        )
+        results = Results(filename=filename_pf + "ckg" + str(seed) + ".pkl")
+        loop_ckg = EI_OptimizationLoop(black_box_func=black_box_function,
+                                objective=constrained_obj,
+                                ei_type=AcquisitionFunctionType.MC_CONSTRAINED_KNOWLEDGE_GRADIENT,
+                                bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
+                                performance_type="model",
+                                model=model,
+                                seed=seed,
+                                budget=int(budget/(num_constraints+1)),
+                                number_initial_designs=6,
+                                results=results,
+                                penalty_value=torch.tensor([penalty]))
+        loop_ckg.run()
