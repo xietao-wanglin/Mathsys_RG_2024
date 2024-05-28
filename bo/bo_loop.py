@@ -289,18 +289,6 @@ class EI_Decoupled_OptimizationLoop(OptimizationLoop):
                     if new_y < best_observed_value:
                         k = 0
                         i = size
-                else:
-                    # print(evaluation_order[i]+1)
-                    new_y = self.evaluate_black_box_func(new_x, evaluation_order[i] + 1)
-                    train_x[evaluation_order[i] + 1] = torch.cat([train_x[evaluation_order[i] + 1], new_x])
-                    train_y[evaluation_order[i] + 1] = torch.cat([train_y[evaluation_order[i] + 1], new_y])
-                    model = self.update_model(X=train_x, y=train_y)
-                    evaluated_idx.append(evaluation_order[i] + 1)
-                    if new_y < 0:
-                        i = i + 1
-                    else:
-                        k = i + 1
-                        i = size
             if i == size - 1 and j == 0:
                 # print(0)
                 new_y = self.evaluate_black_box_func(new_x, 0)
