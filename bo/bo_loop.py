@@ -81,8 +81,6 @@ class OptimizationLoop:
                                                           smart_initial_locations=best_observed_location)
                 kg_values_list[task_idx] = kgvalue
                 new_x_list.append(new_x)
-                print("kg value", kgvalue, task_idx)
-            print("kg values", kg_values_list)
             index = torch.argmax(torch.tensor(kg_values_list) / self.costs)
             new_y = self.evaluate_black_box_func(new_x_list[index], index)
 
@@ -360,7 +358,6 @@ class EI_Decoupled_OptimizationLoop(OptimizationLoop):
             raw_samples=72,  # used for intialization heuristic
             options={"maxiter": 100},
         )
-        print("finished opt point")
         # observe new values
         x_optimised = candidates.detach()
         x_optimised_val = kgvalue.detach()
@@ -375,7 +372,6 @@ class EI_Decoupled_OptimizationLoop(OptimizationLoop):
             )
             x_smart_optimised = candidates.detach()
             x_smart_optimised_val = kgvalue.detach()
-            print("finished best")
             if x_smart_optimised_val >= x_optimised_val:
                 return x_smart_optimised[None, :], x_smart_optimised_val
 
@@ -470,7 +466,6 @@ class EI_OptimizationLoop(OptimizationLoop):
             raw_samples=72,  # used for intialization heuristic
             options={"maxiter": 100},
         )
-        print("finished opt point")
         # observe new values
         x_optimised = candidates.detach()
         x_optimised_val = kgvalue.detach()
@@ -485,7 +480,6 @@ class EI_OptimizationLoop(OptimizationLoop):
             )
             x_smart_optimised = candidates.detach()
             x_smart_optimised_val = kgvalue.detach()
-            print("finished best")
             if x_smart_optimised_val >= x_optimised_val:
                 return x_smart_optimised[None, :], x_smart_optimised_val
 
@@ -600,7 +594,6 @@ class Decoupled_EIKG_OptimizationLoop(OptimizationLoop):
             raw_samples=72,  # used for intialization heuristic
             options={"maxiter": 100},
         )
-        print("finished opt point")
         # observe new values
         x_optimised = candidates.detach()
         x_optimised_val = kgvalue.detach()
@@ -615,7 +608,6 @@ class Decoupled_EIKG_OptimizationLoop(OptimizationLoop):
             )
             x_smart_optimised = candidates.detach()
             x_smart_optimised_val = kgvalue.detach()
-            print("finished best")
             if x_smart_optimised_val >= x_optimised_val:
                 return x_smart_optimised[None, :], x_smart_optimised_val
 
