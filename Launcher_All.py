@@ -29,16 +29,16 @@ def constraint_callable_wrapper(constraint_idx):
 if __name__ == "__main__":
 
     # Set problem and constrains here
-    black_box_function = MysteryFunction(noise_std=1e-6, negate=True)
-    num_constraints = 1
-    filename_pf = 'fun3'
+    black_box_function = MysteryFunctionSuperRedundant(noise_std=1e-6, negate=True)
+    num_constraints = 9
+    filename_pf = 'mystery_lots_final_'
     budget = 240
     penalty = 40.0
 
-    DCKG = False
-    EIKG = False
-    DEI = False
-    CEI = False
+    DCKG = True
+    EIKG = True
+    DEI = True
+    CEI = True
     CKG = True
 
     seed = int(sys.argv[1])
