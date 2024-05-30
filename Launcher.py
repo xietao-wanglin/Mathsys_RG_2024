@@ -39,9 +39,9 @@ if __name__ == "__main__":
         constraints=[constraint_callable_wrapper(idx) for idx in range(1, num_constraints + 1)],
     )
     results = Results(filename="resultcheck_" + str(seed) + ".pkl")
-    loop = turbo_boloop(black_box_func=black_box_function,
+    loop = OptimizationLoop(black_box_func=black_box_function,
                             objective=constrained_obj,
-                            ei_type=AcquisitionFunctionType.BOTORCH_CONSTRAINED_EXPECTED_IMPROVEMENT,
+                            ei_type=AcquisitionFunctionType.DECOUPLED_CONSTRAINED_KNOWLEDGE_GRADIENT,
                             bounds=torch.tensor([[0.0, 0.0], [1.0, 1.0]], device=device, dtype=dtype),
                             performance_type="model",
                             model=model,

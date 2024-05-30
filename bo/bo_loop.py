@@ -264,6 +264,8 @@ class EI_Decoupled_OptimizationLoop(OptimizationLoop):
             evaluated_idx = []
             i = 0
             j = 0
+            best_locations = []
+            quality_list = []
             k = -1
             while i < size - 1:
                 if probability_infeasibility[i] > 0.1:
@@ -272,6 +274,9 @@ class EI_Decoupled_OptimizationLoop(OptimizationLoop):
                     train_x[evaluation_order[i] + 1] = torch.cat([train_x[evaluation_order[i] + 1], new_x])
                     train_y[evaluation_order[i] + 1] = torch.cat([train_y[evaluation_order[i] + 1], new_y])
                     model = self.update_model(X=train_x, y=train_y)
+                    argmax,_ =self.compute_best_posterior_mean(model = model, bounds=self.bounds)
+                    best_locations.append(argmax)
+                    quality_list.append(self.evaluate_location_true_quality(argmax))
                     evaluated_idx.append(evaluation_order[i] + 1)
                     if new_y < 0:
                         i = i + 1
@@ -284,17 +289,39 @@ class EI_Decoupled_OptimizationLoop(OptimizationLoop):
                     train_x[0] = torch.cat([train_x[0], new_x])
                     train_y[0] = torch.cat([train_y[0], new_y])
                     model = self.update_model(X=train_x, y=train_y)
+                    argmax,_ =self.compute_best_posterior_mean(model = model, bounds=self.bounds)
+                    best_locations.append(argmax)
+                    quality_list.append(self.evaluate_location_true_quality(argmax))
                     evaluated_idx.append(0)
                     j = 1
                     if new_y < best_observed_value:
                         k = 0
                         i = size
+                else:
+                    # print(evaluation_order[i]+1)
+                    new_y = self.evaluate_black_box_func(new_x, evaluation_order[i]+1)
+                    train_x[evaluation_order[i]+1] = torch.cat([train_x[evaluation_order[i]+1], new_x])
+                    train_y[evaluation_order[i]+1] = torch.cat([train_y[evaluation_order[i]+1], new_y])
+                    model = self.update_model(X=train_x, y=train_y)
+                    argmax,_ =self.compute_best_posterior_mean(model = model, bounds=self.bounds)
+                    best_locations.append(argmax)
+                    quality_list.append(self.evaluate_location_true_quality(argmax))
+                    evaluated_idx.append(evaluation_order[i]+1)
+                    if new_y < 0:
+                        i=i+1
+                    else:
+                        k = i+1
+                        i = size
+
             if i == size - 1 and j == 0:
                 # print(0)
                 new_y = self.evaluate_black_box_func(new_x, 0)
                 train_x[0] = torch.cat([train_x[0], new_x])
                 train_y[0] = torch.cat([train_y[0], new_y])
                 model = self.update_model(X=train_x, y=train_y)
+                argmax,_ =self.compute_best_posterior_mean(model = model, bounds=self.bounds)
+                best_locations.append(argmax)
+                quality_list.append(self.evaluate_location_true_quality(argmax))
                 evaluated_idx.append(0)
 
             print(
@@ -306,9 +333,9 @@ class EI_Decoupled_OptimizationLoop(OptimizationLoop):
             print(f'Evaluated functions: {evaluated_idx}')
             self.save_parameters(train_x=train_x,
                                  train_y=train_y,
-                                 best_predicted_location=best_observed_location,
-                                 best_predicted_location_value=self.evaluate_location_true_quality(
-                                     best_observed_location),
+                                 best_predicted_locations=best_locations,
+                                 best_predicted_location_value=[self.evaluate_location_true_quality(
+                                     best_locations[i]) for i in range(len(best_locations))],
                                  acqf_recommended_location=new_x,
                                  acqf_recommended_location_true_value=self.evaluate_location_true_quality(new_x),
                                  failing_constraint=(k),
@@ -319,7 +346,7 @@ class EI_Decoupled_OptimizationLoop(OptimizationLoop):
         end = time.time() - start_time
         print(f'Total time: {end} seconds')
 
-    def save_parameters(self, train_x, train_y, best_predicted_location,
+    def save_parameters(self, train_x, train_y, best_predicted_locations,
                         best_predicted_location_value, acqf_recommended_location,
                         acqf_recommended_location_true_value, failing_constraint, func_evals):
 
@@ -329,7 +356,7 @@ class EI_Decoupled_OptimizationLoop(OptimizationLoop):
         self.results.save_output_data(train_y)
         self.results.save_number_initial_points(self.number_initial_designs)
         self.results.save_performance_type(self.performance_type)
-        self.results.save_best_predicted_location(best_predicted_location)
+        self.results.save_best_predicted_location(best_predicted_locations)
         self.results.save_best_predicted_location_true_value(best_predicted_location_value)
         self.results.save_acqf_recommended_location(acqf_recommended_location)
         self.results.save_acqf_recommended_location_true_value(acqf_recommended_location_true_value)

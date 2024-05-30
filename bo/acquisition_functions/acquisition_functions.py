@@ -195,6 +195,7 @@ class MCConstrainedKnowledgeGradient(MCAcquisitionFunction):
                     upper_bounds=bounds[1],
                     options={"maxiter": 60}
                 )
+            print(best_x)
             kgvals[xi] = self.compute_discrete_kg(model=fantasy_model, x_new=xnew,
                                                   optimal_discretisation=best_x.reshape(
                                                       num_init_points * self.num_fantasies,
